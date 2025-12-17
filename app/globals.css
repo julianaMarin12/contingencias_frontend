@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 :root{
+  /* brand rgb provided by user */
+  --brand-rgb: 37,171,185;
   --brand: #25ABB9;
   --background: #ffffff;
   --foreground: #0b2540;
@@ -156,4 +158,124 @@ body{
 }
 
 .muted{ color:var(--muted) }
+
+/* Simple plain side menu: minimal, no design */
+.side-menu {
+  /* panel background uses brand rgb with 83% opacity */
+  background: rgba(var(--brand-rgb), 0.83);
+  color: #fff;
+  padding: 8px;
+  margin: 0;
+  border-radius: 6px;
+  box-shadow: none;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  transition: width 200ms ease, transform 200ms ease;
+}
+.side-menu.open { width: 260px; }
+.side-menu.closed { width: 64px; }
+.side-menu-title { font-weight: 700; margin-bottom: 8px; color: var(--brand); }
+.side-menu-simple { list-style: none; padding: 0; margin: 0; }
+.side-menu-simple li { margin: 6px 0; }
+.side-menu-link { color: #fff; text-decoration: none; padding: 8px 10px; display: flex; align-items: center; gap: 12px; border-radius: 6px }
+.side-menu-link:hover { background: rgba(var(--brand-rgb), 0.35); }
+.side-menu-logout-simple { background: transparent; border: none; color: #fff; cursor: pointer; padding: 0; }
+
+/* Active (selected) link: full 100% brand color */
+.side-menu-link.active { background: rgba(var(--brand-rgb), 1); color: #fff; font-weight: 700; }
+
+.ide-menu-footer-simple { margin-top: 12px; }
+
+/* icon shown even when collapsed */
+.side-menu-icon{ width:36px; height:36px; border-radius:8px; background: rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff }
+
+
+.side-menu.closed .side-menu-label { display: none; }
+.side-menu.open .side-menu-label { display: inline; }
+
+.side-toggle-btn{
+  position: fixed;
+  left: 16px;
+  top: 16px;
+  z-index: 75;
+  width: 44px;
+  height: 44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(11,37,64,0.12);
+  border: none;
+  cursor: pointer;
+}
+.side-toggle-btn svg { display:block }
+
+/* close button inside the open side-menu */
+.side-menu-close{
+  background: transparent;
+  border: none;
+  color: #fff;
+  width: 36px;
+  height: 36px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+/* overlay for mobile: keep click-to-close but do NOT darken the page */
+.side-menu-overlay { display: none; position: fixed; inset: 0; background: transparent; z-index: 40; }
+
+
+@media (max-width: 900px) {
+  .side-menu { position: fixed; left: 12px; top: 12px; min-height: calc(100vh - 24px); width: calc(100% - 24px); max-width: 420px; border-radius: 12px; }
+  .side-menu.closed { transform: translateX(-320px); width: calc(100% - 24px); }
+  .side-menu.open { transform: translateX(0); }
+  /* show labels on mobile always */
+  .side-menu.closed .side-menu-label { display: inline; }
+  .side-menu-overlay.visible { display: block; }
+}
+
+/* Desktop: full-height left column and footer pinned */
+@media (min-width: 900px) {
+  .side-menu {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: 260px; /* open width */
+    z-index: 100;
+    border-radius: 0;
+    padding: 18px 12px;
+    box-shadow: none;
+    overflow: auto;
+  }
+
+  .side-menu.closed { width: 64px; }
+
+  /* hide the floating toggle on desktop (we use the header toggle) */
+  .side-toggle-btn { display: none; }
+
+      /* keep a safe margin so the (collapsed) panel doesn't cover content: collapsed width
+        Use body padding so different page wrappers shift consistently */
+      body { padding-left: 64px; transition: padding-left 220ms ease; }
+      body.with-side-menu { padding-left: 260px; }
+
+  /* ensure logout/footer sits at the bottom */
+  .side-menu { display: flex; flex-direction: column; }
+  .side-menu-footer-simple { margin-top: auto; padding-bottom: 18px; }
+
+  /* keep compatibility with older selectors but rely on body padding as primary mechanism */
+  .with-side-menu .shell,
+  .with-side-menu main,
+  .with-side-menu .page-center,
+  .with-side-menu > div {
+    margin-left: 0; /* don't double-shift; body padding handles layout */
+    transition: margin-left 220ms ease;
+  }
+}
 
