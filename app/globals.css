@@ -1,26 +1,159 @@
 @import "tailwindcss";
 
-:root {
+:root{
+  --brand: #25ABB9;
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0b2540;
+  --muted: #7a7a7a;
+  --radius: 12px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@media (prefers-color-scheme: dark){
+  :root{ --background:#071017; --foreground:#e6f6f6 }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+
+body{
+  margin:0;
+  font-family: 'Poppins', Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background: var(--background);
+  color:var(--foreground);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  min-height:100vh;
+}
+
+body::before{
+  content: '';
+  position: fixed;
+  top: -40px;
+  right: -40px;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, rgba(37, 171, 185, 0.26), rgba(37, 171, 185, 0.26) 55%, rgba(37, 170, 185, 0.107) 85%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+@media (min-width: 900px) {
+  body::before{
+    top: -80px;
+    right: -80px;
+    width: 520px;
+    height: 520px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 40%, rgba(37,171,185,0.16), rgba(37,171,185,0.05) 55%, rgba(37,171,185,0.01) 85%);
+  }
+
+  body::after{
+    content: '';
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    width: 360px;
+    height: 520px;
+    background-image: url('/fondo_movil.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: right bottom;
+    pointer-events: none;
+    z-index: 0;
   }
 }
 
-body {
+body{
+  margin:0;
+  font-family: 'Poppins', Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color:var(--foreground);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  min-height:100vh;
 }
+.page-center{
+  height:100vh; 
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+
+.shell{
+  width:100%;
+  max-width:1100px;
+  display:flex;
+  flex-direction:column;
+  position:relative;
+  z-index:1;
+  align-items:center; 
+  justify-content:center;
+}
+
+.shell{flex-direction:column}
+
+.left-pane{
+  padding:28px 24px;
+  flex:1 1 520px;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  background:transparent;
+  align-items:center; 
+  text-align:center;
+}
+
+.right-pane{ display:none }
+
+.brand-title{ color:var(--brand); font-weight:800; font-size:28px; letter-spacing:1px }
+.subtitle{ color:black; margin-top:6px; font-weight:500 }
+
+.form-card{ margin-top:12px; display:flex; flex-direction:column; gap:14px; width:100%; max-width:520px }
+
+.left-pane > div{ width:100%; max-width:520px }
+
+.input{
+  width:100%; padding:12px 14px; border-radius:8px; border:1px solid rgba(37,171,185,1);
+  background: rgba(37, 171, 185, 0.26); outline:none; font-size:15px; color:var(--foreground);
+}
+.input::placeholder{ color: rgba(98, 98, 98, 1) }
+.input:focus{ border-color:var(--brand); box-shadow: none }
+
+.link-small{ font-size:13px; color:var(--brand); text-align:right; text-decoration:none }
+
+.cta{ display:inline-block; width:100%; padding:12px 16px; border-radius:8px; background:var(--brand); color:white; text-align:center; font-weight:700; border:none }
+
+.cta:disabled{ opacity:0.6; cursor:not-allowed }
+
+  .decor-svg{ display:none }
+
+@media(max-width:899px){
+  .shell{ padding:8px }
+  .left-pane{ padding:28px; align-items:center; text-align:center }
+  .left-pane > div{ width:100%; max-width:420px }
+  .brand-title{ font-size:26px }
+  .right-pane{ display:none }
+  .cta{ font-size:17px; padding:14px; border-radius:16px }
+
+
+  .mobile-ornament{ display:none }
+  .parrot-mobile{ display:none }
+
+  body::after{
+    content: '';
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    width: 160px;
+    height: 220px;
+    background-image: url('/fondo_movil.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: right bottom;
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
+.muted{ color:var(--muted) }
+
