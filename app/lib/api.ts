@@ -4,29 +4,106 @@ async function safeJson(res: Response) {
   try { return await res.json(); } catch { return null; }
 }
 
+// API base from .env (backend URL). Set NEXT_PUBLIC_API_BASE in .env
+const API_BASE = typeof process !== "undefined" ? (process.env.NEXT_PUBLIC_API_BASE || "") : "";
+const API_BASE_CLEAN = API_BASE ? API_BASE.replace(/\/+$/g, "") : "";
+
+function getAuthHeaders(): HeadersInit {
+  try {
+    if (typeof window === "undefined") return {};
+    const token = window.localStorage.getItem("access_token");
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    return headers;
+  } catch {
+    return {};
+  }
+}
+
 export async function postLogin(nombre: string, password: string): Promise<ApiResult> {
-  const url = "/auth/login"; // uses Next rewrite in dev or absolute in prod if configured
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ nombre, password }),
-  });
+  const candidateUrls = ["/auth/login"];
+  if (API_BASE_CLEAN) candidateUrls.push(`${API_BASE_CLEAN}/auth/login`);
+
+
+  let res: Response | null = null;
+  let lastErr: any = null;
+  for (const url of candidateUrls) {
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre, password }),
+      });
+      break; 
+    } catch (err) {
+      lastErr = err;
+      res = null;
+      continue;
+    }
+  }
+
+  if (!res) {
+    return { ok: false, status: 0, data: null };
+  }
   const data = await safeJson(res);
+
+  try {
+    if (data && (data as any).access_token && typeof window !== "undefined") {
+      window.localStorage.setItem("access_token", (data as any).access_token);
+    }
+  } catch {}
+
   return { ok: res.ok, status: res.status, data };
 }
 
 export async function getUsuarios(): Promise<ApiResult> {
-  const url = "/users"; // adjust if your backend uses /usuarios
-  const res = await fetch(url);
+  const candidate = ["/users"];
+  if (API_BASE_CLEAN) candidate.push(`${API_BASE_CLEAN}/users`);
+  let res: Response | null = null;
+  for (const url of candidate) {
+    try {
+      res = await fetch(url, { headers: getAuthHeaders() });
+      break;
+    } catch (err) {
+      console.warn("API: getUsuarios fetch failed ->", url, err);
+      res = null;
+      continue;
+    }
+  }
+  if (!res) return { ok: false, status: 0, data: null };
   const data = await safeJson(res);
   return { ok: res.ok, status: res.status, data };
 }
 
 export async function getRoles(): Promise<ApiResult> {
-  const url = "/roles"; // adjust if your backend uses /roles
-  const res = await fetch(url);
-  const data = await safeJson(res);
-  return { ok: res.ok, status: res.status, data };
+  const tryUrls: string[] = ["/roles", "/api/roles"];
+  if (API_BASE_CLEAN) {
+    tryUrls.push(`${API_BASE_CLEAN}/roles`, `${API_BASE_CLEAN}/api/roles`);
+  }
+
+  let lastRes: Response | null = null;
+  for (const url of tryUrls) {
+    try {
+      console.debug("API: fetching roles ->", url);
+      const headers = getAuthHeaders();
+      const res = await fetch(url, { headers });
+      lastRes = res;
+      if (res.status === 404) {
+        console.debug("API: 404 for", url);
+        continue;
+      }
+      const data = await safeJson(res);
+      return { ok: res.ok, status: res.status, data };
+    } catch (err) {
+      continue;
+    }
+  }
+
+  if (lastRes) {
+    const data = await safeJson(lastRes);
+    return { ok: lastRes.ok, status: lastRes.status, data };
+  }
+  return { ok: false, status: 0, data: null };
 }
 
 export default { postLogin, getUsuarios, getRoles };
