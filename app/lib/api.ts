@@ -4,7 +4,6 @@ async function safeJson(res: Response) {
   try { return await res.json(); } catch { return null; }
 }
 
-// API base from .env (backend URL). Set NEXT_PUBLIC_API_BASE in .env
 const API_BASE = typeof process !== "undefined" ? (process.env.NEXT_PUBLIC_API_BASE || "") : "";
 const API_BASE_CLEAN = API_BASE ? API_BASE.replace(/\/+$/g, "") : "";
 
@@ -21,12 +20,14 @@ function getAuthHeaders(): HeadersInit {
 }
 
 export async function postLogin(nombre: string, password: string): Promise<ApiResult> {
-  const candidateUrls = ["/auth/login"];
+  const candidateUrls: string[] = [];
+  candidateUrls.push("/auth/login");
   if (API_BASE_CLEAN) candidateUrls.push(`${API_BASE_CLEAN}/auth/login`);
 
 
   let res: Response | null = null;
   let lastErr: any = null;
+  let chosenUrl: string | null = null;
   for (const url of candidateUrls) {
     try {
       res = await fetch(url, {
@@ -34,6 +35,7 @@ export async function postLogin(nombre: string, password: string): Promise<ApiRe
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nombre, password }),
       });
+      chosenUrl = url;
       break; 
     } catch (err) {
       lastErr = err;
@@ -57,7 +59,8 @@ export async function postLogin(nombre: string, password: string): Promise<ApiRe
 }
 
 export async function getUsuarios(): Promise<ApiResult> {
-  const candidate = ["/users"];
+  const candidate: string[] = [];
+  candidate.push("/users");
   if (API_BASE_CLEAN) candidate.push(`${API_BASE_CLEAN}/users`);
   let res: Response | null = null;
   for (const url of candidate) {
@@ -72,13 +75,15 @@ export async function getUsuarios(): Promise<ApiResult> {
   }
   if (!res) return { ok: false, status: 0, data: null };
   const data = await safeJson(res);
+
   return { ok: res.ok, status: res.status, data };
 }
 
 export async function getRoles(): Promise<ApiResult> {
-  const tryUrls: string[] = ["/roles", "/api/roles"];
+  const tryUrls: string[] = [];
+  tryUrls.push("/roles");
   if (API_BASE_CLEAN) {
-    tryUrls.push(`${API_BASE_CLEAN}/roles`, `${API_BASE_CLEAN}/api/roles`);
+    tryUrls.push(`${API_BASE_CLEAN}/roles`);
   }
 
   let lastRes: Response | null = null;
@@ -93,6 +98,7 @@ export async function getRoles(): Promise<ApiResult> {
         continue;
       }
       const data = await safeJson(res);
+   
       return { ok: res.ok, status: res.status, data };
     } catch (err) {
       continue;
@@ -101,6 +107,7 @@ export async function getRoles(): Promise<ApiResult> {
 
   if (lastRes) {
     const data = await safeJson(lastRes);
+
     return { ok: lastRes.ok, status: lastRes.status, data };
   }
   return { ok: false, status: 0, data: null };

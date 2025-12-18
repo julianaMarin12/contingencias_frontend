@@ -9,10 +9,10 @@ type Props = {
 };
 
 const ITEMS: Array<{ label: string; href: string }> = [
-  { label: "ROLES", href: "/admin/roles" },
+  { label: "ROLES", href: "/admin" },
+  { label: "USUARIOS", href: "/admin/users" },
   { label: "TIENDAS", href: "/admin/stores" },
   { label: "PRODUCTOS", href: "/admin/products" },
-  { label: "USUARIOS", href: "/admin/users" },
   { label: "CLIENTES", href: "/admin/clients" },
   { label: "FACTURAS", href: "/admin/invoices" },
 ];
