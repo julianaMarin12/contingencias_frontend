@@ -63,7 +63,6 @@ export default function Page() {
           <h2 style={{ color: "#19A7A6", marginTop: 0, fontWeight: "bold" }}>ADMINISTRADOR</h2>
           <div style={{ marginTop: 12 }}>
             <ActionsNav active={active} onChange={(a) => setActive(a)} />
-            <SideMenu showTitle initialOpen={true} onLogout={handleLogout} />
 
             <div style={{ marginTop: 12 }}>
               {active === "Crear" && (
@@ -105,7 +104,6 @@ export default function Page() {
                     <button
                       disabled={createLoading}
                       onClick={async () => {
-                        // capture values then clear inputs immediately
                         const payloadNombre = nombre;
                         const payloadDescripcion = descripcion;
                         setNombre("");
@@ -118,7 +116,6 @@ export default function Page() {
                           if (!res.ok) {
                             setCreateError(`Error: ${res.status}`);
                           } else {
-                            // reload roles
                             setLoading(true);
                             const r = await loadRoles();
                             if (r.ok) setRoles(r.roles);
