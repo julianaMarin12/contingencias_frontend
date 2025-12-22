@@ -183,8 +183,8 @@ body{
 .side-menu-link:hover { background: rgba(var(--brand-rgb), 0.35); }
 .side-menu-logout-simple { background: transparent; border: none; color: #fff; cursor: pointer; padding: 0; }
 
-/* Active (selected) link: full 100% brand color */
-.side-menu-link.active { background: rgba(var(--brand-rgb), 1); color: #fff; font-weight: 700; }
+/* Active (selected) link: white text and bold only (no background) */
+.side-menu-link.active { background: transparent !important; color: #fff !important; font-weight: 700; }
 
 .ide-menu-footer-simple { margin-top: 12px; }
 

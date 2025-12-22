@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
 
 type Props = {
   showTitle?: boolean;
@@ -21,6 +22,33 @@ const ITEMS: Array<{ label: string; href: string }> = [
 export default function SideMenu({ showTitle = false, onLogout, initialOpen = true }: Props) {
   const [open, setOpen] = useState<boolean>(initialOpen);
   const [selected, setSelected] = useState<string>(ITEMS[0].href);
+  const router = useRouter();
+  const pathname = usePathname();
+
+  function handleLogout() {
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("access_token");
+        window.localStorage.removeItem("token");
+      }
+    } catch (e) {}
+    if (onLogout) onLogout();
+    else router.push("/");
+  }
+  // keep selected in sync with pathname: prefer exact match, then longest-prefix
+  useEffect(() => {
+    try {
+      if (!pathname) return;
+      // exact match first
+      const exact = ITEMS.find((it) => pathname === it.href);
+      if (exact) { setSelected(exact.href); return; }
+      // otherwise find the longest href that is a prefix of pathname
+      const prefix = [...ITEMS].sort((a, b) => b.href.length - a.href.length).find((it) => pathname.startsWith(it.href + "/") || pathname === it.href);
+      if (prefix) setSelected(prefix.href);
+    } catch (e) {}
+  }, [pathname]);
+
+  // Manage body class when menu open/closed
   useEffect(() => {
     if (typeof document === "undefined") return;
     const cls = "with-side-menu";
@@ -86,13 +114,11 @@ export default function SideMenu({ showTitle = false, onLogout, initialOpen = tr
           ))}
         </ul>
 
-        {onLogout && (
-          <div className="side-menu-footer-simple">
-            <button className="side-menu-logout-simple" onClick={onLogout}>
-              Cerrar sesión
-            </button>
-          </div>
-        )}
+        <div className="side-menu-footer-simple">
+          <button className="side-menu-logout-simple" onClick={handleLogout}>
+            Cerrar sesión
+          </button>
+        </div>
       </aside>
     </>
   );
