@@ -16,7 +16,6 @@ export async function loadRoles(): Promise<{
   try {
     const payload = res.data ?? null;
 
-    // payload might be array or wrapped
     if (Array.isArray(payload)) {
       roles = payload.map((r: any) => ({ rol_id: r.rol_id ?? r.id, nombre: r.nombre ?? r.name, descripcion: r.descripcion ?? r.description }));
     } else if (payload && Array.isArray((payload as any).data)) {
@@ -24,7 +23,6 @@ export async function loadRoles(): Promise<{
     } else if (payload && Array.isArray((payload as any).roles)) {
       roles = (payload as any).roles.map((r: any) => ({ rol_id: r.rol_id ?? r.id, nombre: r.nombre ?? r.name, descripcion: r.descripcion ?? r.description }));
     } else if (payload && typeof payload === "object") {
-      // try first array field
       for (const k of Object.keys(payload)) {
         if (Array.isArray((payload as any)[k])) {
           roles = (payload as any)[k].map((r: any) => ({ rol_id: r.rol_id ?? r.id, nombre: r.nombre ?? r.name, descripcion: r.descripcion ?? r.description }));
@@ -46,8 +44,7 @@ export async function loadRoles(): Promise<{
 
 export async function createRole(nombre: string, descripcion: string): Promise<ApiResult> {
   const API_BASE = typeof process !== "undefined" ? (process.env.NEXT_PUBLIC_API_BASE || "") : "";
-  const DEV_FALLBACK = "http://localhost:3000";
-  const base = API_BASE || DEV_FALLBACK;
+  const base = API_BASE ;
   const API_BASE_CLEAN = base ? base.replace(/\/+$/g, "") : "";
 
   const tryUrls: string[] = [];
@@ -66,24 +63,15 @@ export async function createRole(nombre: string, descripcion: string): Promise<A
         }
       } catch {}
 
-      // eslint-disable-next-line no-console
       console.groupCollapsed(`roles.createRole — POST ${url}`);
-      // eslint-disable-next-line no-console
       console.log("payload:", { nombre, descripcion });
       const res = await fetch(url, { method: "POST", headers, body: JSON.stringify({ nombre, descripcion }) });
       const data = await (async () => { try { return await res.json(); } catch { return null; } })();
-      // eslint-disable-next-line no-console
       console.log("response:", { url, status: res.status, ok: res.ok, data });
-      // eslint-disable-next-line no-console
       console.groupEnd();
       return { ok: res.ok, status: res.status, data };
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.groupCollapsed(`roles.createRole — error for ${url}`);
-      // eslint-disable-next-line no-console
-      console.error(err);
-      // eslint-disable-next-line no-console
-      console.groupEnd();
+
       continue;
     }
   }
@@ -95,14 +83,10 @@ export async function updateRole(rol_id: number | string, nombre: string, descri
   try {
     const id = String(rol_id);
     const API_BASE = typeof process !== "undefined" ? (process.env.NEXT_PUBLIC_API_BASE || "") : "";
-    const DEV_FALLBACK = "http://localhost:3000";
-    const base = API_BASE || DEV_FALLBACK;
+    const base = API_BASE ;
     const API_BASE_CLEAN = base ? base.replace(/\/+$/g, "") : "";
     const tryUrls: string[] = [];
-    // Prefer the PUT to the resource URL `/roles/{id}` (backend expects id in path)
-    // Try relative endpoints first so Next.js can proxy and avoid CORS
     tryUrls.push(`/roles/${id}`, `/roles`);
-    // Fallback to absolute backend URLs
     if (API_BASE_CLEAN) {
       tryUrls.push(`${API_BASE_CLEAN}/roles`, `${API_BASE_CLEAN}/roles/${id}`);
     }
@@ -117,46 +101,23 @@ export async function updateRole(rol_id: number | string, nombre: string, descri
           }
         } catch {}
 
-        // Send only the fields the backend expects in the body (nombre, descripcion).
-        // The id is provided in the URL path `/roles/{id}`.
         const body = JSON.stringify({ nombre, descripcion });
-        // eslint-disable-next-line no-console
-        console.groupCollapsed(`roles.updateRole — PUT ${url}`);
-        // eslint-disable-next-line no-console
-        console.log("payload:", { nombre, descripcion });
         let res: Response;
         try {
           res = await fetch(url, { method: "PUT", headers, body });
         } catch (fetchErr) {
-          // network failure / CORS issue — log and continue to try next URL
-          // eslint-disable-next-line no-console
-          console.warn(`roles.updateRole fetch failed for ${url}:`, fetchErr);
-          // eslint-disable-next-line no-console
-          console.groupEnd();
           continue;
         }
 
         const data = await (async () => { try { return await res.json(); } catch { return null; } })();
-        // eslint-disable-next-line no-console
-        console.log("response:", { url, status: res.status, ok: res.ok, data });
-        // eslint-disable-next-line no-console
-        console.groupEnd();
         return { ok: res.ok, status: res.status, data };
       } catch (err) {
-        // eslint-disable-next-line no-console
-        console.groupCollapsed(`roles.updateRole — error for ${url}`);
-        // eslint-disable-next-line no-console
-        console.error(err);
-        // eslint-disable-next-line no-console
-        console.groupEnd();
         continue;
       }
     }
 
     return { ok: false, status: 0, data: null };
   } catch (outerErr) {
-    // eslint-disable-next-line no-console
-    console.error("roles.updateRole unexpected error:", outerErr);
     return { ok: false, status: 0, data: null };
   }
 }
@@ -165,11 +126,9 @@ export async function deleteRole(rol_id: number | string): Promise<ApiResult> {
   try {
     const id = String(rol_id);
     const API_BASE = typeof process !== "undefined" ? (process.env.NEXT_PUBLIC_API_BASE || "") : "";
-    const DEV_FALLBACK = "http://localhost:3000";
-    const base = API_BASE || DEV_FALLBACK;
+    const base = API_BASE ;
     const API_BASE_CLEAN = base ? base.replace(/\/+$/g, "") : "";
     const tryUrls: string[] = [];
-    // try relative first (proxy) then absolute
     tryUrls.push(`/roles/${id}`);
     if (API_BASE_CLEAN) tryUrls.push(`${API_BASE_CLEAN}/roles/${id}`);
 
@@ -183,44 +142,40 @@ export async function deleteRole(rol_id: number | string): Promise<ApiResult> {
           }
         } catch {}
 
-        // eslint-disable-next-line no-console
-        console.groupCollapsed(`roles.deleteRole — DELETE ${url}`);
-        // eslint-disable-next-line no-console
-        console.log("deleting id:", id);
         let res: Response;
         try {
           res = await fetch(url, { method: "DELETE", headers });
         } catch (fetchErr) {
-          // network/CORS error — log and continue
-          // eslint-disable-next-line no-console
-          console.warn(`roles.deleteRole fetch failed for ${url}:`, fetchErr);
-          // eslint-disable-next-line no-console
-          console.groupEnd();
           continue;
         }
 
         const data = await (async () => { try { return await res.json(); } catch { return null; } })();
-        // eslint-disable-next-line no-console
-        console.log("response:", { url, status: res.status, ok: res.ok, data });
-        // eslint-disable-next-line no-console
-        console.groupEnd();
-        return { ok: res.ok, status: res.status, data };
+       
       } catch (err) {
-        // eslint-disable-next-line no-console
-        console.groupCollapsed(`roles.deleteRole — error for ${url}`);
-        // eslint-disable-next-line no-console
-        console.error(err);
-        // eslint-disable-next-line no-console
-        console.groupEnd();
         continue;
       }
     }
 
     return { ok: false, status: 0, data: null };
   } catch (outerErr) {
-    // eslint-disable-next-line no-console
-    console.error("roles.deleteRole unexpected error:", outerErr);
     return { ok: false, status: 0, data: null };
   }
+}
+
+export const ROLE_ACCESS: Record<string, string[]> = {
+  Barista: ["/stores"],
+  Administrador: ["/admin", "/admin/products", "/admin/users", "/admin/stores"],
+};
+
+export function canRoleAccessPath(role: any, path: string): boolean {
+  if (!role || !path) return false;
+  let roleName: string | null = null;
+  if (typeof role === "string") roleName = role;
+  else if (typeof role === "object") roleName = role.nombre ?? role.name ?? role.rol ?? null;
+  if (!roleName) return false;
+  const key = Object.keys(ROLE_ACCESS).find((k) => k.toLowerCase() === String(roleName).toLowerCase());
+  if (!key) return false;
+  const allowed = ROLE_ACCESS[key] ?? [];
+  return allowed.some((p) => p === path || path.startsWith(p));
 }
 

@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
       { source: "/users", destination: `${dest}/users` },
       { source: "/roles/:path*", destination: `${dest}/roles/:path*` },
       { source: "/roles", destination: `${dest}/roles` },
+      { source: "/tiendas/:path*", destination: `${dest}/tiendas/:path*` },
+      { source: "/tiendas", destination: `${dest}/tiendas` },
       { source: "/api/:path*", destination: `${dest}/api/:path*` },
     ];
   },

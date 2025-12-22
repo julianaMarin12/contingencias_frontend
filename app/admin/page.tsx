@@ -241,22 +241,7 @@ export default function Page() {
                               <div style={{ flex: 1, padding: "10px 12px", color: "#19A7A6" }}>{r.nombre}</div>
                               <div style={{ flex: 1, padding: "10px 12px" }}>{r.descripcion}</div>
                               <div style={{ width: 140, padding: "10px 12px", textAlign: "center", display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                                <button
-                                  onClick={() => {
-                                    setRoleToEdit(r);
-                                    setShowEdit(true);
-                                  }}
-                                  aria-label={`Editar ${r.nombre}`}
-                                  title={`Editar ${r.nombre}`}
-                                  style={{ width: 40, height: 40, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px solid #0b7285', background: '#ffffff', color: '#0b7285', cursor: 'pointer' }}
-                                >
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                                    <path d="M3 21v-3.75L14.06 6.19l3.75 3.75L6.75 21H3z" stroke="#0b7285" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                                    <path d="M19.02 4.98a2.5 2.5 0 0 1 3.54 3.54L18.5 12.59" stroke="#0b7285" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  </svg>
-                                </button>
                                 
-                                <div style={{ width: 8 }} />
                                 <button
                                   onClick={() => {
                                     setRoleToDelete(r);

@@ -8,11 +8,10 @@ export type User = {
   rol?: { rol_id?: number; nombre?: string } | null;
 };
 
-const DEV_FALLBACK = "http://localhost:3000";
 
 function getBase() {
   const API_BASE = typeof process !== "undefined" ? (process.env.NEXT_PUBLIC_API_BASE || "") : "";
-  const base = API_BASE || DEV_FALLBACK;
+  const base = API_BASE ;
   return base ? base.replace(/\/+$/g, "") : "";
 }
 
@@ -27,14 +26,8 @@ export async function loadUsers(): Promise<{ ok: boolean; status: number; users:
     try {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       try { if (typeof window !== "undefined") { const token = window.localStorage.getItem("access_token"); if (token) headers.Authorization = `Bearer ${token}`; } } catch {}
-      // eslint-disable-next-line no-console
-      console.groupCollapsed(`users.loadUsers — GET ${url}`);
       const res = await fetch(url, { method: "GET", headers });
       const data = await (async () => { try { return await res.json(); } catch { return null; } })();
-      // eslint-disable-next-line no-console
-      console.log({ url, status: res.status, ok: res.ok, data });
-      // eslint-disable-next-line no-console
-      console.groupEnd();
       if (!res.ok) continue;
 
       const payload = data ?? null;
@@ -56,8 +49,6 @@ export async function loadUsers(): Promise<{ ok: boolean; status: number; users:
 
       return { ok: true, status: res.status, users, attempted };
     } catch (err: any) {
-      // eslint-disable-next-line no-console
-      console.warn(`users.loadUsers error for ${url}:`, err);
       continue;
     }
   }
@@ -80,29 +71,16 @@ export async function createUser(nombre: string, email: string, rol_id?: number,
       if (typeof rol_id !== "undefined") payload.rol_id = rol_id;
       if (typeof password !== "undefined") payload.password = password;
       const body = JSON.stringify(payload);
-      // eslint-disable-next-line no-console
-      console.groupCollapsed(`users.createUser — POST ${url}`);
-      // eslint-disable-next-line no-console
-      console.log("payload:", { nombre, email, rol_id });
+
       try {
         const res = await fetch(url, { method: "POST", headers, body });
         const data = await (async () => { try { return await res.json(); } catch { return null; } })();
-        // eslint-disable-next-line no-console
-        console.log("response:", { url, status: res.status, ok: res.ok, data });
-        // eslint-disable-next-line no-console
-        console.groupEnd();
         return { ok: res.ok, status: res.status, data };
       } catch (err: any) {
-        // eslint-disable-next-line no-console
-        console.warn(`users.createUser fetch failed for ${url}:`, err);
-        // try next url
-        // eslint-disable-next-line no-console
-        console.groupEnd();
+        
         continue;
       }
     } catch (err: any) {
-      // eslint-disable-next-line no-console
-      console.warn(`users.createUser error for ${url}:`, err);
       continue;
     }
   }
@@ -126,29 +104,18 @@ export async function updateUser(usuario_id: number | string, nombre: string, em
       if (typeof rol_id !== "undefined") payload.rol_id = rol_id;
       if (typeof password !== "undefined") payload.password = password;
       const body = JSON.stringify(payload);
-      // eslint-disable-next-line no-console
       console.groupCollapsed(`users.updateUser — PUT ${url}`);
-      // eslint-disable-next-line no-console
       console.log("payload:", payload);
       try {
         const res = await fetch(url, { method: "PUT", headers, body });
         const data = await (async () => { try { return await res.json(); } catch { return null; } })();
-        // eslint-disable-next-line no-console
         console.log("response:", { url, status: res.status, ok: res.ok, data });
-        // eslint-disable-next-line no-console
-        console.groupEnd();
         return { ok: res.ok, status: res.status, data };
       } catch (err: any) {
-        // eslint-disable-next-line no-console
-        console.warn(`users.updateUser fetch failed for ${url}:`, err);
-        // try next url
-        // eslint-disable-next-line no-console
-        console.groupEnd();
+     
         continue;
       }
     } catch (err: any) {
-      // eslint-disable-next-line no-console
-      console.warn(`users.updateUser error for ${url}:`, err);
       continue;
     }
   }
@@ -167,28 +134,15 @@ export async function deleteUser(usuario_id: number | string): Promise<ApiResult
     try {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       try { if (typeof window !== "undefined") { const token = window.localStorage.getItem("access_token"); if (token) headers.Authorization = `Bearer ${token}`; } } catch {}
-      // eslint-disable-next-line no-console
       console.groupCollapsed(`users.deleteUser — DELETE ${url}`);
-      // eslint-disable-next-line no-console
-      console.log("deleting id:", id);
       try {
         const res = await fetch(url, { method: "DELETE", headers });
         const data = await (async () => { try { return await res.json(); } catch { return null; } })();
-        // eslint-disable-next-line no-console
-        console.log("response:", { url, status: res.status, ok: res.ok, data });
-        // eslint-disable-next-line no-console
-        console.groupEnd();
         return { ok: res.ok, status: res.status, data };
       } catch (err: any) {
-        // eslint-disable-next-line no-console
-        console.warn(`users.deleteUser fetch failed for ${url}:`, err);
-        // eslint-disable-next-line no-console
-        console.groupEnd();
         continue;
       }
     } catch (err: any) {
-      // eslint-disable-next-line no-console
-      console.warn(`users.deleteUser error for ${url}:`, err);
       continue;
     }
   }

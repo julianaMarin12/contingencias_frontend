@@ -37,7 +37,6 @@ export default function UsersPage() {
         if (cancelled) return;
         if (r.ok) setRolesOptions(r.roles ?? []);
       } catch (err) {
-        // ignore
       }
     }
     loadRolesOnce();
@@ -62,10 +61,8 @@ export default function UsersPage() {
     setLoading(false);
   };
 
-  // reload when switching to Listar
   useEffect(() => {
     if (active === "Listar") reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
   return (
@@ -125,7 +122,6 @@ export default function UsersPage() {
                       <div style={{ flex: 2, padding: "10px 12px" }}>EMAIL</div>
                       <div style={{ width: 180, padding: "10px 12px" }}>CREADO</div>
                       <div style={{ flex: 1, padding: "10px 12px" }}>ROL</div>
-                      <div style={{ width: 140, padding: "10px 12px", textAlign: "center" }}>ACCIONES</div>
                     </div>
                     <div>
                       {(!users || users.length === 0) ? (
@@ -178,17 +174,7 @@ export default function UsersPage() {
                             <div style={{ flex: 2, padding: "10px 12px" }}>{u.email}</div>
                             <div style={{ width: 180, padding: "10px 12px" }}>{u.creado_an ? new Date(u.creado_an).toLocaleString() : "-"}</div>
                             <div style={{ flex: 1, padding: "10px 12px" }}>{u.rol?.nombre ?? "-"}</div>
-                            <div style={{ width: 140, padding: "10px 12px", textAlign: "center", display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                              <button onClick={() => { setToDelete(u); setShowConfirm(true); }} aria-label={`Eliminar ${u.nombre}`} title={`Eliminar ${u.nombre}`} style={{ width: 40, height: 40, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px solid #e74c3c', background: '#ff6b6b', color: 'white', cursor: 'pointer' }}>
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                                  <path d="M3 6h18" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                                  <path d="M8 6v13a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                                  <path d="M10 11v6" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                                  <path d="M14 11v6" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                                  <path d="M9 3h6l-1 3H10L9 3z" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                              </button>
-                            </div>
+                            
                           </div>
                         ))
                       )}
