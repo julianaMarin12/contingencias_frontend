@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from 'next/navigation';
 import clientsApi, { Client } from '../lib/clients';
+
+type NewClient = { nombre?: string; cedula?: string; correo?: string; Empleado?: boolean };
 import facturasApi from '../lib/Facturas';
 
 function formatPrice(val: number | string | null | undefined) {
@@ -202,7 +204,7 @@ export default function CartPage() {
 
   const displayStoreName = printSnapshot?.tienda?.nombre ?? (storeName || (cart && ((cart.store && cart.store.nombre) || (cart.tienda && cart.tienda.nombre) || (cart.storeName) || (cart.tiendaName))) || 'Tienda');
 
-  const items = (printSnapshot?.items) ? (printSnapshot.items) : Object.keys(cart).map((k) => {
+  const items = (printSnapshot?.items) ? (printSnapshot.items) : Object.keys(cart).map((k: string) => {
     const it = cart[k] as any;
     const unit = Number(it.price ?? 0);
     const unitSubtotal = typeof it.unitSubtotal !== 'undefined' ? Number(it.unitSubtotal) : undefined;
@@ -214,8 +216,8 @@ export default function CartPage() {
     return { id: k, qty: it.qty, name: it.name, unitPrice: unit, unitSubtotal, subtotal, iva, impoconsumo, icui, pendingDetails: it.pendingDetails };
   });
 
-  const subtotalSum = items.reduce((s, it) => s + Number(it.subtotal || 0), 0);
-  const taxSum = items.reduce((s, it) => s + Number(it.iva || 0) + Number(it.impoconsumo || 0) + Number(it.icui || 0), 0);
+  const subtotalSum = items.reduce((s: number, it: any) => s + Number(it.subtotal || 0), 0);
+  const taxSum = items.reduce((s: number, it: any) => s + Number(it.iva || 0) + Number(it.impoconsumo || 0) + Number(it.icui || 0), 0);
   const total = subtotalSum + taxSum;
 
   return (
@@ -270,7 +272,7 @@ export default function CartPage() {
                   const first = found[0];
                   setSelectedClientId(first.cliente_id ?? first.id ?? null);
                 }} style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid #19A7A6', background: '#19A7A6', color: '#fff' }}>Buscar</button>
-                <button onClick={() => setCreatingClient((s) => !s)} style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid #ddd' }}>{creatingClient ? 'Cancelar' : 'Nuevo'}</button>
+                <button onClick={() => setCreatingClient((s: boolean) => !s)} style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid #ddd' }}>{creatingClient ? 'Cancelar' : 'Nuevo'}</button>
               </div>
               {/* show only filtered results (no full list) */}
               {clientsFiltered.length > 0 && (
@@ -284,11 +286,11 @@ export default function CartPage() {
               )}
               {creatingClient && (
                 <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
-                  <input placeholder="Nombre" value={newClient.nombre ?? ''} onChange={(e) => setNewClient((s) => ({ ...s, nombre: e.target.value }))} style={{ padding: 8, borderRadius: 6, border: '1px solid #ddd' }} />
-                  <input placeholder="Cédula / NIT" value={newClient.cedula ?? ''} onChange={(e) => setNewClient((s) => ({ ...s, cedula: e.target.value }))} style={{ padding: 8, borderRadius: 6, border: '1px solid #ddd' }} />
-                  <input placeholder="Correo" value={newClient.correo ?? ''} onChange={(e) => setNewClient((s) => ({ ...s, correo: e.target.value }))} style={{ padding: 8, borderRadius: 6, border: '1px solid #ddd' }} />
+                  <input placeholder="Nombre" value={newClient.nombre ?? ''} onChange={(e) => setNewClient((s: NewClient) => ({ ...s, nombre: e.target.value }))} style={{ padding: 8, borderRadius: 6, border: '1px solid #ddd' }} />
+                  <input placeholder="Cédula / NIT" value={newClient.cedula ?? ''} onChange={(e) => setNewClient((s: NewClient) => ({ ...s, cedula: e.target.value }))} style={{ padding: 8, borderRadius: 6, border: '1px solid #ddd' }} />
+                  <input placeholder="Correo" value={newClient.correo ?? ''} onChange={(e) => setNewClient((s: NewClient) => ({ ...s, correo: e.target.value }))} style={{ padding: 8, borderRadius: 6, border: '1px solid #ddd' }} />
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input type="checkbox" checked={Boolean(newClient.Empleado)} onChange={(e) => setNewClient((s) => ({ ...s, Empleado: e.target.checked }))} /> Empleado
+                    <input type="checkbox" checked={Boolean(newClient.Empleado)} onChange={(e) => setNewClient((s: NewClient) => ({ ...s, Empleado: e.target.checked }))} /> Empleado
                   </label>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button onClick={async () => {
@@ -301,7 +303,7 @@ export default function CartPage() {
                           const created = res.data || (res.data && res.data.cliente) || null;
                           const createdId = (created && (created.cliente_id ?? created.id)) || null;
                           const createdName = (created && (created.nombre ?? created.name)) || (newClient.nombre ?? 'Nuevo cliente');
-                          setClients((c) => [{ cliente_id: createdId, id: createdId, nombre: createdName, ...created }, ...c]);
+                          setClients((c: Client[]) => [{ cliente_id: createdId, id: createdId, nombre: createdName, ...created }, ...c]);
                           setSelectedClientId(createdId);
                           try { if (typeof window !== 'undefined') window.localStorage.setItem('cart_v1_client', String(createdId)); } catch (e) {}
                           setCreatingClient(false);
@@ -350,7 +352,7 @@ export default function CartPage() {
                     <div style={{ textAlign: 'right' }}>Precio unitario</div>
                     <div style={{ textAlign: 'right' }}>Precio total</div>
                   </div>
-                  {items.map((it, idx) => (
+                  {items.map((it: any, idx: number) => (
                     <div key={`row-${it.id}`} style={{ display: 'grid', gridTemplateColumns: '1fr 3fr 2fr 2fr', padding: '12px', alignItems: 'center', borderTop: '1px solid #eee' }}>
                       <div style={{ color: '#666' }}>{it.qty}</div>
                       <div style={{ fontWeight: 700 }}>{it.name}</div>
@@ -384,7 +386,7 @@ export default function CartPage() {
                 const payloadRaw: any = {
                   tienda_id: storeId ? Number(storeId) : undefined,
                   cliente_id: selectedClientId ? Number(selectedClientId as any) : undefined,
-                  items: items.map((it) => ({ producto_id: Number(it.id), cantidad: Number(it.qty || 0) })),
+                  items: items.map((it: any) => ({ producto_id: Number(it.id), cantidad: Number(it.qty || 0) })),
                 };
                 // remove undefined fields so payload is clean
                 const payload: any = JSON.parse(JSON.stringify(payloadRaw));
@@ -410,7 +412,7 @@ export default function CartPage() {
                   const numero = (createdData && (createdData.numero ?? createdData.numero_factura ?? createdData.id)) || current;
                   const clientObj = clients.find((c) => String(c.cliente_id ?? c.id) === String(selectedClientId)) ?? null;
                   // ensure item names and unit prices are available for printing; prefer server-returned items then fetch product data if needed
-                  let itemsToPrint = items.map((it) => ({ id: it.id, nombre: it.name ?? '', cantidad: Number(it.qty || 0), unidad_precio: it.unitSubtotal ?? it.unitPrice ?? 0, subtotal: it.subtotal }));
+                  let itemsToPrint = items.map((it: any) => ({ id: it.id, nombre: it.name ?? '', cantidad: Number(it.qty || 0), unidad_precio: it.unitSubtotal ?? it.unitPrice ?? 0, subtotal: it.subtotal }));
                   try { console.debug('[print] initial itemsToPrint', itemsToPrint, 'createdData=', createdData); } catch(e){}
                   // if server returned created invoice with item names, use them
                   if (createdData && Array.isArray(createdData.items) && createdData.items.length > 0) {
@@ -421,7 +423,7 @@ export default function CartPage() {
                         if (!pid) continue;
                         mapById[pid] = si;
                       }
-                      itemsToPrint = itemsToPrint.map(it => {
+                      itemsToPrint = itemsToPrint.map((it: any) => {
                         const pid = String(it.id).replace(/\D/g,'');
                         const si = mapById[pid];
                         if (si) {
@@ -431,9 +433,9 @@ export default function CartPage() {
                       });
                     } catch(e) { console.debug('[print] error mapping createdData items', e); }
                   }
-                  const needsFetch = itemsToPrint.some(it => !it.nombre || String(it.nombre).trim() === '' || Number(it.unidad_precio) === 0);
+                  const needsFetch = itemsToPrint.some((it: any) => !it.nombre || String(it.nombre).trim() === '' || Number(it.unidad_precio) === 0);
                   if (needsFetch) {
-                    const enriched = await Promise.all(itemsToPrint.map(async (it) => {
+                    const enriched = await Promise.all(itemsToPrint.map(async (it: any) => {
                       try {
                         if (it.nombre && String(it.nombre).trim() && !/^\d+$/.test(String(it.nombre).trim())) return it;
                         const pid = it.id;
@@ -470,7 +472,7 @@ export default function CartPage() {
                   }
                   try { console.debug('[print] final itemsToPrint', itemsToPrint); } catch(e){}
                   // ensure we never render empty product names — fallback to a sensible label and unit price
-                  itemsToPrint = itemsToPrint.map(it => {
+                  itemsToPrint = itemsToPrint.map((it: any) => {
                     const safeName = (it.nombre && String(it.nombre).trim() && !/^\d+$/.test(String(it.nombre).trim())) ? it.nombre : `Producto ${String(it.id)}`;
                     const safeUnidad = (it.unidad_precio && Number(it.unidad_precio)) ? Number(it.unidad_precio) : (it.cantidad ? (Number(it.subtotal || 0) / Number(it.cantidad || 1)) : 0);
                     return { ...it, nombre: safeName, unidad_precio: safeUnidad };
@@ -479,7 +481,7 @@ export default function CartPage() {
                   const snapshot = {
                     tienda: { id: storeId, nombre: displayStoreName, nit: storeNit },
                     cliente: clientObj,
-                    items: itemsToPrint.map(it => ({ nombre: it.nombre, cantidad: it.cantidad, unidad_precio: it.unidad_precio, subtotal: it.subtotal })),
+                    items: itemsToPrint.map((it: any) => ({ nombre: it.nombre, cantidad: it.cantidad, unidad_precio: it.unidad_precio, subtotal: it.subtotal })),
                     total: total,
                     numero,
                     created: (createdData && (createdData.created_at || createdData.fecha)) || new Date().toISOString(),
