@@ -50,7 +50,7 @@ export default function UsersPage() {
       const r = await loadUsers();
       if (!r.ok) {
         setUsers([]);
-        setError(r.error ?? `Error ${r.status}`);
+        setError((r as any).data?.message ?? `Error ${r.status}`);
       } else {
         setUsers(r.users);
       }
@@ -162,7 +162,6 @@ export default function UsersPage() {
                       <div style={{ flex: 2, padding: "10px 12px" }}>EMAIL</div>
                       <div style={{ width: 180, padding: "10px 12px" }}>CREADO</div>
                       <div style={{ flex: 1, padding: "10px 12px" }}>ROL</div>
-                      <div style={{ width: 140, padding: "10px 12px", textAlign: "center" }}>ACCIONES</div>
                     </div>
                     <div>
                       {(!users || users.length === 0) ? (

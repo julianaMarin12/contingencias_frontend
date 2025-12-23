@@ -8,9 +8,9 @@ export type Store = {
   [k: string]: any;
 };
 
-export async function loadStores(): Promise<ApiResult> {
+export async function loadStores(usuarioId?: string | number): Promise<ApiResult> {
   try {
-    const res = await getStores();
+    const res = await getStores(usuarioId);
     return res;
   } catch (err) {
     return { ok: false, status: 0, data: null };

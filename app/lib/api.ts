@@ -89,12 +89,10 @@ export async function getRoles(): Promise<ApiResult> {
   let lastRes: Response | null = null;
   for (const url of tryUrls) {
     try {
-      console.debug("API: fetching roles ->", url);
       const headers = getAuthHeaders();
       const res = await fetch(url, { headers });
       lastRes = res;
       if (res.status === 404) {
-        console.debug("API: 404 for", url);
         continue;
       }
       const data = await safeJson(res);
@@ -122,19 +120,15 @@ export async function getStores(usuarioId?: string | number): Promise<ApiResult>
   let lastRes: Response | null = null;
   for (const url of tryUrls) {
     try {
-      console.debug("API: fetching stores ->", url);
       const headers = getAuthHeaders();
       const res = await fetch(url, { headers });
       lastRes = res;
       if (res.status === 404) {
-        console.debug("API: 404 for", url);
         continue;
       }
       const data = await safeJson(res);
       if (res.ok && (data === null || typeof data === "undefined")) {
-        console.debug("API: stores returned OK but data is null for", url);
       }
-      console.debug("API: stores response", { url, status: res.status, data });
       return { ok: res.ok, status: res.status, data };
     } catch (err) {
       console.warn("API: getStores fetch failed ->", url, err);

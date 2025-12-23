@@ -232,12 +232,30 @@ body{
 
 
 @media (max-width: 900px) {
-  .side-menu { position: fixed; left: 12px; top: 12px; min-height: calc(100vh - 24px); width: calc(100% - 24px); max-width: 420px; border-radius: 12px; }
-  .side-menu.closed { transform: translateX(-320px); width: calc(100% - 24px); }
+  /* On mobile, open the side menu below the header + toolbar so it doesn't cover them */
+  .side-menu {
+    position: fixed;
+    left: 12px;
+    top: 112px; /* leaves space for header + compact toolbar */
+    min-height: calc(100vh - 128px);
+    width: min(300px, 80%);
+    max-width: 300px;
+    border-radius: 12px;
+    transform: translateX(0);
+  }
+  .side-menu.closed {
+    transform: translateX(-360px);
+    width: min(300px, 80%);
+  }
   .side-menu.open { transform: translateX(0); }
   /* show labels on mobile always */
   .side-menu.closed .side-menu-label { display: inline; }
+  /* overlay should start below header/toolbar as well */
+  .side-menu-overlay { display: none; position: fixed; left: 0; right: 0; top: 112px; bottom: 0; background: transparent; z-index: 40; }
   .side-menu-overlay.visible { display: block; }
+
+  /* position the floating toggle button below the header so it doesn't overlap the title */
+  .side-toggle-btn { top: 64px; left: 12px; z-index: 160; }
 }
 
 /* Desktop: full-height left column and footer pinned */
