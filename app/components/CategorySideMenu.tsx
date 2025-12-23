@@ -1,10 +1,12 @@
 "use client";
 import React, { useEffect, useState } from "react";
 
+type CategoryItem = { id?: string | number; label: string };
+
 type Props = {
-  categories: string[];
-  selected?: string;
-  onSelect: (c: string) => void;
+  categories: CategoryItem[];
+  selected?: string | number;
+  onSelect: (id?: string | number) => void;
   onLogout?: () => void;
   initialOpen?: boolean;
   showTitle?: boolean;
@@ -12,7 +14,7 @@ type Props = {
 
 export default function CategorySideMenu({ categories, selected, onSelect, onLogout, initialOpen = false, showTitle = true }: Props) {
   const [open, setOpen] = useState<boolean>(initialOpen);
-  const [cur, setCur] = useState<string | undefined>(selected ?? undefined);
+  const [cur, setCur] = useState<string | number | undefined>(selected ?? undefined);
 
   useEffect(() => { if (selected !== undefined) setCur(selected); }, [selected]);
 
@@ -53,6 +55,8 @@ export default function CategorySideMenu({ categories, selected, onSelect, onLog
           title="Abrir categorías"
           className="side-toggle-btn"
           onClick={() => setOpen(true)}
+          aria-controls="category-side-menu"
+          aria-expanded={open}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path d="M3 6h18" stroke="#0b2540" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -64,13 +68,13 @@ export default function CategorySideMenu({ categories, selected, onSelect, onLog
 
       <div className={`side-menu-overlay ${open ? "visible" : ""}`} onClick={() => setOpen(false)} />
 
-      <aside id="category-side-menu" className={`side-menu ${open ? "open" : "closed"}`} role="navigation" aria-expanded={open} aria-hidden={!open}>
+      <aside id="category-side-menu" className={`side-menu ${open ? "open" : "closed"}`} role="navigation" aria-expanded={open}>
         <div className="side-menu-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {open && showTitle && <div className="side-menu-title">Categorías</div>}
           </div>
 
-          <button aria-label={open ? 'Colapsar menú' : 'Expandir menú'} title={open ? 'Colapsar menú' : 'Expandir menú'} className="side-menu-close" onClick={() => setOpen((s) => !s)}>
+          <button aria-label={open ? 'Colapsar menú' : 'Expandir menú'} title={open ? 'Colapsar menú' : 'Expandir menú'} className="side-menu-close" onClick={() => setOpen((s) => !s)} aria-controls="category-side-menu" aria-expanded={open}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
               {open ? (
                 <path d="M15 18l-6-6 6-6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -82,16 +86,16 @@ export default function CategorySideMenu({ categories, selected, onSelect, onLog
         </div>
 
         <ul className="side-menu-simple" role="menu" style={{ paddingTop: 6 }}>
-          {categories.map((c) => (
-            <li key={c} role="none">
+          {categories.map((it, idx) => (
+            <li key={`${String(it.id ?? it.label)}-${idx}`} role="none">
               <button
                 role="menuitem"
-                className={`side-menu-link ${cur === c ? "active" : ""}`}
-                onClick={() => { setCur(c); onSelect(c); if (typeof window !== "undefined" && window.innerWidth < 900) setOpen(false); }}
-                style={{ background: 'transparent', border: 'none', width: '100%', textAlign: 'left', padding: '8px 6px' }}
+                className={`side-menu-link ${String(cur) === String(it.id ?? it.label) ? "active" : ""}`}
+                onClick={() => { const val = it.id ?? it.label; console.debug('CategorySideMenu click ->', val); setCur(val); onSelect(val); if (typeof window !== "undefined" && window.innerWidth < 900) setOpen(false); }}
+                style={{ background: 'transparent', border: 'none', width: '100%', textAlign: 'left', padding: '8px 6px', cursor: 'pointer' }}
               >
-                <span className="side-menu-icon" aria-hidden>{c.charAt(0)}</span>
-                <span className="side-menu-label">{c}</span>
+                <span className="side-menu-icon" aria-hidden>{(it.label || '').charAt(0)}</span>
+                <span className="side-menu-label">{it.label}</span>
               </button>
             </li>
           ))}

@@ -35,7 +35,7 @@ body::before{
   border-radius: 50%;
   background: radial-gradient(circle at 40% 40%, rgba(37, 171, 185, 0.26), rgba(37, 171, 185, 0.26) 55%, rgba(37, 170, 185, 0.107) 85%);
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
 }
 
 @media (min-width: 900px) {
@@ -60,7 +60,7 @@ body::before{
     background-repeat: no-repeat;
     background-position: right bottom;
     pointer-events: none;
-    z-index: 0;
+    z-index: -1;
   }
 }
 
@@ -153,7 +153,7 @@ body{
     background-repeat: no-repeat;
     background-position: right bottom;
     pointer-events: none;
-    z-index: 0;
+    z-index: -1;
   }
 }
 
@@ -173,6 +173,8 @@ body{
   flex-direction: column;
   justify-content: flex-start;
   transition: width 200ms ease, transform 200ms ease;
+  pointer-events: auto;
+  z-index: 170;
 }
 .side-menu.open { width: 260px; }
 .side-menu.closed { width: 64px; }

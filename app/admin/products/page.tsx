@@ -68,15 +68,19 @@ export default function AdminProductsPage() {
     e.preventDefault();
     if (!file) { setMsg('Selecciona un archivo'); return; }
     setLoading(true);
+    setMsg(null);
     try {
       const res = await productsApi.createProductFile(file);
       setLoading(false);
       if (res.ok) {
-        setMsg('Producto creado');
+        setMsg('Archivo subido correctamente. Productos actualizados.');
         setFile(null);
         await load();
         setActive('Listar');
-      } else setMsg(res.data ? JSON.stringify(res.data) : `Error ${res.status}`);
+      } else {
+        const body = res.data ? (typeof res.data === 'string' ? res.data : JSON.stringify(res.data)) : `Error ${res.status}`;
+        setMsg(`Error al subir: ${body}`);
+      }
     } catch (err: any) { setLoading(false); setMsg(err?.message ?? String(err)); }
   }
 
@@ -93,13 +97,19 @@ export default function AdminProductsPage() {
             {active === 'Crear' && (
               <div style={{ padding: 12, border: '1px solid #e6f7f6', borderRadius: 8, maxWidth: 720 }}>
                 <h3 style={{ margin: '8px 0', color: '#0b7285' }}>Subir producto (archivo)</h3>
+                {msg && (
+                  <div style={{ marginBottom: 8, padding: 8, borderRadius: 6, background: msg.startsWith('Error') ? '#ffecec' : '#e6fffa', color: msg.startsWith('Error') ? '#9f3a38' : '#0b6b64' }}>{msg}</div>
+                )}
                 <form onSubmit={onCreate} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input type="file" accept="*/*" onChange={ev => { const f = ev.target.files ? ev.target.files[0] : null; setFile(f); }} />
+                    <input disabled={loading} type="file" accept="*/*" onChange={ev => { const f = ev.target.files ? ev.target.files[0] : null; setFile(f); }} />
                   </label>
-                  <button type="submit" style={{ background: '#19A7A6', color: '#fff', borderRadius: 8, padding: '8px 12px', border: 'none' }}>
-                    <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><IconUpload/> Subir</span>
-                  </button>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <button disabled={loading} type="submit" style={{ background: '#19A7A6', color: '#fff', borderRadius: 8, padding: '8px 12px', border: 'none' }}>
+                      <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}><IconUpload/> {loading ? 'Subiendo...' : 'Subir'}</span>
+                    </button>
+                    <div style={{ color: '#666', fontSize: 13 }}>{file ? file.name : 'No hay archivo seleccionado'}</div>
+                  </div>
                 </form>
               </div>
             )}

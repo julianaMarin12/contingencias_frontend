@@ -16,6 +16,8 @@ const nextConfig: NextConfig = {
       { source: "/clientes", destination: `${dest}/clientes` },
       { source: "/zonas/:path*", destination: `${dest}/zonas/:path*` },
       { source: "/zonas", destination: `${dest}/zonas` },
+      { source: "/familias/:path*", destination: `${dest}/familias/:path*` },
+      { source: "/familias", destination: `${dest}/familias` },
       { source: "/productos/upload", destination: `${dest}/productos/upload` },
       { source: "/productos/:path*", destination: `${dest}/productos/:path*` },
       { source: "/productos", destination: `${dest}/productos` },

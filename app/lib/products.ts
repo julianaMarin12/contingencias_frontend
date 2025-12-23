@@ -21,7 +21,12 @@ export type Product = { producto_id?: number; id?: number; nombre?: string; [k: 
 
 function buildTryUrls(path: string) {
 	const urls: string[] = [];
-	// try relative first (for browser proxied requests), then explicit API_BASE
+	// In browser, prefer relative paths only so Next dev proxy handles backend requests (avoids CORS).
+	if (typeof window !== 'undefined') {
+		urls.push(path);
+		return urls;
+	}
+	// try relative first (for server-side or tooling), then explicit API_BASE
 	urls.push(path);
 	if (API_BASE_CLEAN) {
 		if (API_BASE_CLEAN.endsWith(path)) urls.push(API_BASE_CLEAN);
