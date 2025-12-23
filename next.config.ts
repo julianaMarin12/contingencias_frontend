@@ -21,6 +21,8 @@ const nextConfig: NextConfig = {
       { source: "/productos/upload", destination: `${dest}/productos/upload` },
       { source: "/productos/:path*", destination: `${dest}/productos/:path*` },
       { source: "/productos", destination: `${dest}/productos` },
+      { source: "/facturas/:path*", destination: `${dest}/facturas/:path*` },
+      { source: "/facturas", destination: `${dest}/facturas` },
       { source: "/api/:path*", destination: `${dest}/api/:path*` },
     ];
   },
