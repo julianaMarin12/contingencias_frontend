@@ -32,7 +32,12 @@ type CartItem = {
 
 export default function Page() {
   const search = useSearchParams();
-  const storeId = search?.get("storeId") ?? null;
+  let storeId = search?.get("storeId") ?? null;
+  if (typeof window !== 'undefined' && !storeId) {
+    try {
+      storeId = window.localStorage.getItem('storeId') ?? window.localStorage.getItem('selectedStore') ?? window.localStorage.getItem('store_id') ?? null;
+    } catch (e) { storeId = null; }
+  }
   const [storeName, setStoreName] = useState<string | null>(null);
   const [storeZonaId, setStoreZonaId] = useState<string | number | null>(null);
   const [products, setProducts] = useState<Product[]>([]);

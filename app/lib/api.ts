@@ -112,10 +112,20 @@ export async function getRoles(): Promise<ApiResult> {
 }
 
 export async function getStores(usuarioId?: string | number): Promise<ApiResult> {
-  const qs = usuarioId !== undefined && usuarioId !== null ? `?usuario_id=${encodeURIComponent(String(usuarioId))}` : "";
   const tryUrls: string[] = [];
-  tryUrls.push(`/tiendas${qs}`);
-  if (API_BASE_CLEAN) tryUrls.push(`${API_BASE_CLEAN}/tiendas${qs}`);
+  if (usuarioId !== undefined && usuarioId !== null) {
+    const idStr = encodeURIComponent(String(usuarioId));
+    // Try path-based endpoint first (/tiendas/{id}) then query param fallback
+    tryUrls.push(`/tiendas/${idStr}`);
+    tryUrls.push(`/tiendas?usuario_id=${idStr}`);
+    if (API_BASE_CLEAN) {
+      tryUrls.push(`${API_BASE_CLEAN}/tiendas/${idStr}`);
+      tryUrls.push(`${API_BASE_CLEAN}/tiendas?usuario_id=${idStr}`);
+    }
+  } else {
+    tryUrls.push(`/tiendas`);
+    if (API_BASE_CLEAN) tryUrls.push(`${API_BASE_CLEAN}/tiendas`);
+  }
 
   let lastRes: Response | null = null;
   for (const url of tryUrls) {

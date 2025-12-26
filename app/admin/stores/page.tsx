@@ -35,7 +35,11 @@ export default function StoresPage() {
   }
   const [zonaNames, setZonaNames] = useState<Record<string, string>>({});
 
-  useEffect(() => { let cancelled = false; async function f(){ setLoading(true); setError(null); const r = await loadStores(); if (cancelled) return; if (!r.ok) { setStores([]); setError(`Error ${r.status}`); } else {
+  useEffect(() => { let cancelled = false; async function f(){ setLoading(true); setError(null);
+    const storedUid = (typeof window !== 'undefined') ? (localStorage.getItem('userId') ?? localStorage.getItem('usuario_id') ?? localStorage.getItem('id')) : null;
+    const uid = storedUid ? Number(storedUid) : undefined;
+    const r = await loadStores(uid);
+    if (cancelled) return; if (!r.ok) { setStores([]); setError(`Error ${r.status}`); } else {
         const data = r.data;
         let arr: any[] = [];
         if (Array.isArray(data)) arr = data;
@@ -49,6 +53,7 @@ export default function StoresPage() {
         }
         setStores(arr as Store[]);
       } setLoading(false);} f(); return () => { cancelled = true; }; }, []);
+
 
       useEffect(() => {
         let cancelled = false;
@@ -110,7 +115,9 @@ export default function StoresPage() {
   const reload = async () => {
     setLoading(true); setError(null);
     try {
-      const r = await loadStores();
+      const storedUid = (typeof window !== 'undefined') ? (localStorage.getItem('userId') ?? localStorage.getItem('usuario_id') ?? localStorage.getItem('id')) : null;
+      const uid = storedUid ? Number(storedUid) : undefined;
+      const r = await loadStores(uid);
       if (!r.ok) { setStores([]); setError((r as any).data?.message ?? `Error ${r.status}`); }
       else {
         const data = r.data;

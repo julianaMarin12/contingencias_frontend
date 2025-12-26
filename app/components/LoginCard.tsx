@@ -48,6 +48,17 @@ export default function LoginCard() {
         setDebugInfo(JSON.stringify(dbg, null, 2));
       } catch (e) {}
 
+      // Store user id in localStorage for later API calls (compat: userId, usuario_id, id)
+      try {
+        const uid = userObj?.usuario_id ?? userObj?.id ?? userObj?.user_id ?? userObj?.usuarioId ?? userObj?.id_usuario ?? null;
+        if (uid !== null && typeof uid !== 'undefined') {
+          const uidStr = String(uid);
+          try { localStorage.setItem('userId', uidStr); } catch (e) {}
+          try { localStorage.setItem('usuario_id', uidStr); } catch (e) {}
+          try { localStorage.setItem('id', uidStr); } catch (e) {}
+        }
+      } catch (e) {}
+
       const isAdmin = roleId === 1 || String(roleId) === "1" || String(roleName).toLowerCase() === "administrador" || String(roleName).toLowerCase() === "admin";
       if (isAdmin) {
         router.push("/admin");
