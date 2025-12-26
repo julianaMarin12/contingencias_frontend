@@ -57,6 +57,21 @@ export default function SideMenu({ showTitle = false, onLogout, initialOpen = tr
 
   return (
     <>
+      {/* floating toggle for mobile when menu is closed */}
+      {!open && (
+        <button
+          aria-label="Abrir menú"
+          title="Abrir menú"
+          className="side-toggle-btn"
+          onClick={() => setOpen(true)}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M3 6h18" stroke="#0b2540" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M3 12h18" stroke="#0b2540" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M3 18h18" stroke="#0b2540" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      )}
       {/* No floating toggle on desktop — toggle lives inside the panel header */}
 
       <div className={`side-menu-overlay ${open ? "visible" : ""}`} onClick={() => setOpen(false)} />
