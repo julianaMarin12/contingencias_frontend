@@ -44,7 +44,6 @@ export default function CartPage() {
     } catch (e) { }
   }, []);
 
-  // derive storeId and storeName from cart if not provided via query
   useEffect(() => {
     try {
       if ((!storeId || storeId === null) && cart) {
@@ -53,7 +52,6 @@ export default function CartPage() {
         const candidateName = cart?.store?.nombre ?? cart?.tienda?.nombre ?? cart?.storeName ?? cart?.tiendaName ?? null;
         if (candidateName) setStoreName(String(candidateName));
       }
-      // if still no storeId, attempt to load a global consecutive
       if (!storeId) {
         try {
           const g = Number(window.localStorage.getItem('consecutivo_global') || '1') || 1;
@@ -70,7 +68,6 @@ export default function CartPage() {
 
   useEffect(() => {
     if (!storeId) return;
-    // load store details and consecutive from localStorage
     (async () => {
       try {
         const tryUrls: string[] = [];
@@ -88,7 +85,6 @@ export default function CartPage() {
           } catch (e) { continue; }
         }
 
-        // normalize response and set store-related state
         if (got) {
           const payload = got?.data ? (Array.isArray(got.data) ? got.data[0] : got.data) : (Array.isArray(got) ? got[0] : got);
           if (payload) {
@@ -125,14 +121,12 @@ export default function CartPage() {
         if (res && res.ok) {
           const list = res.clients || [];
           setClients(list);
-          // Prefer client with cedula 22222222 as default
           const preferred = list.find((c: any) => String(c.cedula ?? c.nit ?? '').replace(/\D/g, '') === '22222222');
           if (preferred) {
             const defaultId = preferred.cliente_id ?? preferred.id ?? null;
             setSelectedClientId(defaultId);
             try { if (typeof window !== 'undefined') window.localStorage.setItem('cart_v1_client', String(defaultId)); } catch (e) {}
           } else if (list.length > 0) {
-            // do not auto-select full list; keep first as fallback only if none selected yet
             const defaultId = list[0].cliente_id ?? list[0].id ?? null;
             if (!selectedClientId) {
               setSelectedClientId(defaultId);
@@ -145,7 +139,6 @@ export default function CartPage() {
     return () => { mounted = false; };
   }, []);
 
-  // persist selected client to localStorage so cart is associated
   useEffect(() => {
     try { if (typeof window !== 'undefined') {
       if (selectedClientId == null) window.localStorage.removeItem('cart_v1_client');
@@ -153,7 +146,6 @@ export default function CartPage() {
     } } catch (e) {}
   }, [selectedClientId]);
 
-  // Enrich cart items with product data (price, iva, impoconsumo, icui) from /productos/{id}
   const enrichingRef = React.useRef<Record<string, boolean>>({});
   useEffect(() => {
     if (!cart || typeof window === 'undefined') return;
@@ -183,7 +175,6 @@ export default function CartPage() {
           }
           const product = got?.data ? (Array.isArray(got.data) ? got.data[0] : got.data) : (Array.isArray(got) ? got[0] : got);
           if (!product) return;
-          // find a price entry (prefer precios array)
           let priceEntry: any = null;
           if (Array.isArray(product.precios) && product.precios.length > 0) priceEntry = product.precios[0];
           else if (product.precio || product.precio_unitario) priceEntry = product;
@@ -204,26 +195,40 @@ export default function CartPage() {
 
   const displayStoreName = printSnapshot?.tienda?.nombre ?? (storeName || (cart && ((cart.store && cart.store.nombre) || (cart.tienda && cart.tienda.nombre) || (cart.storeName) || (cart.tiendaName))) || 'Tienda');
 
-  const items = (printSnapshot?.items) ? (printSnapshot.items) : Object.keys(cart).map((k: string) => {
-    const it = cart[k] as any;
-    const unit = Number(it.price ?? 0);
-    const unitSubtotal = typeof it.unitSubtotal !== 'undefined' ? Number(it.unitSubtotal) : undefined;
-    const qty = Number(it.qty || 0);
-    const subtotal = typeof it.subtotal !== 'undefined' ? Number(it.subtotal) : (typeof unitSubtotal !== 'undefined' ? unitSubtotal * qty : qty * unit);
-    const iva = Number(it.iva ?? 0) * qty;
-    const impoconsumo = Number(it.impoconsumo ?? 0) * qty;
-    const icui = Number(it.icui ?? 0) * qty;
-    return { id: k, qty: it.qty, name: it.name, unitPrice: unit, unitSubtotal, subtotal, iva, impoconsumo, icui, pendingDetails: it.pendingDetails };
-  });
+  const items = (printSnapshot?.items)
+        ? (printSnapshot.items as any[]).map((it: any, idx: number) => {
+        const qty = Number(it.cantidad ?? it.qty ?? 0);
+        const unitPrice = Number(it.unidad_precio ?? it.unitPrice ?? it.precio_unitario ?? 0);
+        const unitSubtotal = typeof it.unitSubtotal !== 'undefined' ? Number(it.unitSubtotal) : (unitPrice || undefined);
+        const subtotal = typeof it.subtotal !== 'undefined' ? Number(it.subtotal) : (unitSubtotal !== undefined ? unitSubtotal * qty : Number(it.total ?? 0));
+        const iva = Number(it.unidad_iva ?? it.iva ?? 0) * qty;
+        const impoconsumo = Number(it.unidad_impoconsumo ?? it.impoconsumo ?? 0) * qty;
+        const icui = Number(it.unidad_icui ?? it.icui ?? 0) * qty;
+        return { id: it.id ?? (`print-${idx}`), qty, name: it.nombre ?? it.name ?? '', unitPrice, unitSubtotal, subtotal, iva, impoconsumo, icui, pendingDetails: it.pendingDetails };
+      })
+    : Object.keys(cart).map((k: string) => {
+      const it = cart[k] as any;
+      const unit = Number(it.price ?? 0);
+      const unitSubtotal = typeof it.unitSubtotal !== 'undefined' ? Number(it.unitSubtotal) : undefined;
+      const qty = Number(it.qty || 0);
+      const subtotal = typeof it.subtotal !== 'undefined' ? Number(it.subtotal) : (typeof unitSubtotal !== 'undefined' ? unitSubtotal * qty : qty * unit);
+      const iva = Number(it.iva ?? 0) * qty;
+      const impoconsumo = Number(it.impoconsumo ?? 0) * qty;
+      const icui = Number(it.icui ?? 0) * qty;
+      return { id: k, qty: it.qty, name: it.name, unitPrice: unit, unitSubtotal, subtotal, iva, impoconsumo, icui, pendingDetails: it.pendingDetails };
+    });
 
   const subtotalSum = items.reduce((s: number, it: any) => s + Number(it.subtotal || 0), 0);
-  const taxSum = items.reduce((s: number, it: any) => s + Number(it.iva || 0) + Number(it.impoconsumo || 0) + Number(it.icui || 0), 0);
+  const ivaSum = items.reduce((s: number, it: any) => s + Number(it.iva || 0), 0);
+  const impoconsumoSum = items.reduce((s: number, it: any) => s + Number(it.impoconsumo || 0), 0);
+  const icuiSum = items.reduce((s: number, it: any) => s + Number(it.icui || 0), 0);
+  const taxSum = ivaSum + impoconsumoSum + icuiSum;
   const total = subtotalSum + taxSum;
 
   return (
     <div className="invoice-wrapper" style={{ padding: 12, background: 'transparent', backgroundImage: 'none' }}>
       <div style={{ maxWidth: 920, margin: '0 auto', marginBottom: 8 }}>
-        <button onClick={() => { try { window.history.back(); } catch (e) {} }} style={{ background: 'none', border: 'none', color: '#19A7A6', padding: 8, cursor: 'pointer', fontWeight: 700 }}>← Volver</button>
+        <button onClick={() => { try { try { if (typeof window !== 'undefined') { window.localStorage.removeItem('cart_v1_client'); window.localStorage.removeItem('cart_v1'); } } catch(e){} setSelectedClientId(null); window.history.back(); } catch (e) {} }} style={{ background: 'none', border: 'none', color: '#19A7A6', padding: 8, cursor: 'pointer', fontWeight: 700 }}>← Volver</button>
       </div>
       <div style={{ maxWidth: 920, margin: '0 auto' }}>
           {/* Header with store info, not a card */}
@@ -252,7 +257,6 @@ export default function CartPage() {
                   value={searchCedula}
                   onChange={(e) => setSearchCedula(e.target.value)}
                   onFocus={() => {
-                    // when focusing the search, show only client with id 1 if exists
                     const one = clients.find((c) => String(c.cliente_id ?? c.id) === '1');
                     if (one) {
                       setClientsFiltered([one]);
@@ -368,7 +372,27 @@ export default function CartPage() {
           {/* Taxes and total */}
           <div className="total-block" style={{ marginTop: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#666', padding: '6px 0' }}>
-              <div>IMPUESTO</div>
+              <div>Subtotal </div>
+              <div>{formatPrice(subtotalSum)}</div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#666', padding: '6px 0' }}>
+              <div>IVA</div>
+              <div>{formatPrice(ivaSum)}</div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#666', padding: '6px 0' }}>
+              <div>Impoconsumo</div>
+              <div>{formatPrice(impoconsumoSum)}</div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#666', padding: '6px 0' }}>
+              <div>ICUI</div>
+              <div>{formatPrice(icuiSum)}</div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#666', padding: '6px 0', marginTop: 6 }}>
+              <div><strong>IMPUESTO</strong></div>
               <div>{formatPrice(taxSum)}</div>
             </div>
 
@@ -378,20 +402,18 @@ export default function CartPage() {
             </div>
           </div>
 
-          {/* Print button: increment consecutive per store and print */}
           <div style={{ marginTop: 18, display: 'flex', justifyContent: 'center' }}>
             <button onClick={async () => {
               try {
-                // build factura payload from cart items
+                const _prevSelectedClient = selectedClientId;
+                try { if (typeof window !== 'undefined' && _prevSelectedClient != null) window.localStorage.setItem('cart_v1_client', String(_prevSelectedClient)); } catch(e) {}
                 const payloadRaw: any = {
                   tienda_id: storeId ? Number(storeId) : undefined,
                   cliente_id: selectedClientId ? Number(selectedClientId as any) : undefined,
                   items: items.map((it: any) => ({ producto_id: Number(it.id), cantidad: Number(it.qty || 0) })),
                 };
-                // remove undefined fields so payload is clean
                 const payload: any = JSON.parse(JSON.stringify(payloadRaw));
 
-                // create factura on server
                 let createdOk = false;
                 let createdData: any = null;
                 try {
@@ -404,17 +426,22 @@ export default function CartPage() {
                   alert('No se pudo crear la factura. Imprimiendo de todas formas.');
                 }
 
-                // regardless of server result, prepare a print snapshot so print content is stable
                 try {
                   const current = Number(window.localStorage.getItem(storeId ? `consecutivo_${storeId}` : 'consecutivo_global') || String(consecutive)) || consecutive;
                   const key = storeId ? `consecutivo_${storeId}` : 'consecutivo_global';
-                  // choose number: next available (current) or the one returned by server
                   const numero = (createdData && (createdData.numero ?? createdData.numero_factura ?? createdData.id)) || current;
                   const clientObj = clients.find((c) => String(c.cliente_id ?? c.id) === String(selectedClientId)) ?? null;
-                  // ensure item names and unit prices are available for printing; prefer server-returned items then fetch product data if needed
-                  let itemsToPrint = items.map((it: any) => ({ id: it.id, nombre: it.name ?? '', cantidad: Number(it.qty || 0), unidad_precio: it.unitSubtotal ?? it.unitPrice ?? 0, subtotal: it.subtotal }));
+                  let itemsToPrint = items.map((it: any) => ({
+                    id: it.id,
+                    nombre: it.name ?? '',
+                    cantidad: Number(it.qty || 0),
+                    unidad_precio: it.unitSubtotal ?? it.unitPrice ?? 0,
+                    subtotal: it.subtotal,
+                    unidad_iva: (Number(it.qty || 1) ? (Number(it.iva || 0) / Number(it.qty || 1)) : 0),
+                    unidad_impoconsumo: (Number(it.qty || 1) ? (Number(it.impoconsumo || 0) / Number(it.qty || 1)) : 0),
+                    unidad_icui: (Number(it.qty || 1) ? (Number(it.icui || 0) / Number(it.qty || 1)) : 0),
+                  }));
                   try { console.debug('[print] initial itemsToPrint', itemsToPrint, 'createdData=', createdData); } catch(e){}
-                  // if server returned created invoice with item names, use them
                   if (createdData && Array.isArray(createdData.items) && createdData.items.length > 0) {
                     try {
                       const mapById: Record<string, any> = {};
@@ -427,7 +454,11 @@ export default function CartPage() {
                         const pid = String(it.id).replace(/\D/g,'');
                         const si = mapById[pid];
                         if (si) {
-                          return { ...it, nombre: si.nombre || si.producto_nombre || si.producto?.nombre || si.producto?.name || si.name || it.nombre, unidad_precio: si.precio_unitario ?? si.unidad_precio ?? si.precio ?? it.unidad_precio };
+                          const siCantidad = Number(si.cantidad ?? si.cantidad_producto ?? si.cantidad_unidad ?? 1) || 1;
+                          const unidadIvaFromSi = Number(si.iva ?? si.unidad_iva ?? si.iva_unitaria ?? 0) / siCantidad;
+                          const unidadImpFromSi = Number(si.impoconsumo ?? si.unidad_impoconsumo ?? 0) / siCantidad;
+                          const unidadIcuiFromSi = Number(si.icui ?? si.unidad_icui ?? 0) / siCantidad;
+                          return { ...it, nombre: si.nombre || si.producto_nombre || si.producto?.nombre || si.producto?.name || si.name || it.nombre, unidad_precio: si.precio_unitario ?? si.unidad_precio ?? si.precio ?? it.unidad_precio, unidad_iva: unidadIvaFromSi || it.unidad_iva, unidad_impoconsumo: unidadImpFromSi || it.unidad_impoconsumo, unidad_icui: unidadIcuiFromSi || it.unidad_icui };
                         }
                         return it;
                       });
@@ -456,7 +487,6 @@ export default function CartPage() {
                         }
                         const product = got?.data ? (Array.isArray(got.data) ? got.data[0] : got.data) : (Array.isArray(got) ? got[0] : got);
                         if (!product) return it;
-                        // try multiple fields for a human-friendly name
                         const name = product?.nombre || product?.name || product?.titulo || product?.title || product?.producto_nombre || product?.nombre_comercial || product?.nombre_fantasia || product?.descripcion || '';
                         let unitPrice = it.unidad_precio;
                         if ((!unitPrice || Number(unitPrice) === 0)) {
@@ -465,13 +495,12 @@ export default function CartPage() {
                           else if (product.precio || product.precio_unitario) priceEntry = product;
                           unitPrice = Number(priceEntry?.subtotal ?? priceEntry?.precio_unitario ?? priceEntry?.precio ?? product?.precio ?? product?.valor ?? 0);
                         }
-                        return { ...it, nombre: String(name || it.nombre || '').trim(), unidad_precio: unitPrice };
+                        return { ...it, nombre: String(name || it.nombre || '').trim(), unidad_precio: unitPrice, unidad_iva: Number(product?.iva ?? 0), unidad_impoconsumo: Number(product?.impoconsumo ?? 0), unidad_icui: Number(product?.icui ?? 0) };
                       } catch (e) { return it; }
                     }));
                     itemsToPrint = enriched;
                   }
                   try { console.debug('[print] final itemsToPrint', itemsToPrint); } catch(e){}
-                  // ensure we never render empty product names — fallback to a sensible label and unit price
                   itemsToPrint = itemsToPrint.map((it: any) => {
                     const safeName = (it.nombre && String(it.nombre).trim() && !/^\d+$/.test(String(it.nombre).trim())) ? it.nombre : `Producto ${String(it.id)}`;
                     const safeUnidad = (it.unidad_precio && Number(it.unidad_precio)) ? Number(it.unidad_precio) : (it.cantidad ? (Number(it.subtotal || 0) / Number(it.cantidad || 1)) : 0);
@@ -481,39 +510,40 @@ export default function CartPage() {
                   const snapshot = {
                     tienda: { id: storeId, nombre: displayStoreName, nit: storeNit },
                     cliente: clientObj,
-                    items: itemsToPrint.map((it: any) => ({ nombre: it.nombre, cantidad: it.cantidad, unidad_precio: it.unidad_precio, subtotal: it.subtotal })),
+                    items: itemsToPrint.map((it: any) => ({
+                      nombre: it.nombre,
+                      cantidad: it.cantidad,
+                      unidad_precio: it.unidad_precio,
+                      subtotal: it.subtotal,
+                      unidad_iva: Number(it.unidad_iva ?? it.unidadIva ?? 0),
+                      unidad_impoconsumo: Number(it.unidad_impoconsumo ?? it.unidadImpoconsumo ?? 0),
+                      unidad_icui: Number(it.unidad_icui ?? it.unidadIcui ?? 0),
+                      iva: Number(it.unidad_iva ?? it.unidadIva ?? 0) * Number(it.cantidad || 0),
+                      impoconsumo: Number(it.unidad_impoconsumo ?? it.unidadImpoconsumo ?? 0) * Number(it.cantidad || 0),
+                      icui: Number(it.unidad_icui ?? it.unidadIcui ?? 0) * Number(it.cantidad || 0),
+                    })),
                     total: total,
                     numero,
                     created: (createdData && (createdData.created_at || createdData.fecha)) || new Date().toISOString(),
                   };
+                  try { console.debug('[print] snapshot ready', snapshot); } catch(e){}
                   setPrintSnapshot(snapshot);
-                  // increment consecutive now (persist)
                   const currentStored = Number(window.localStorage.getItem(key) || String(consecutive)) || consecutive;
                   window.localStorage.setItem(key, String(currentStored + 1));
                   setConsecutive(currentStored + 1);
 
-                  // print using snapshot; only clear invoiced items AFTER printing and only if creation succeeded
                   setTimeout(() => {
                     try { window.print(); } catch (e) {}
-                    // after print, remove snapshot and clear invoiced items if createdOk
                     setTimeout(() => {
-                      if (createdOk) {
-                        try {
-                          const newCart = { ...cart } as any;
-                          for (const it of items) {
-                            if (newCart.hasOwnProperty(String(it.id))) delete newCart[String(it.id)];
+                      try {
+                        if (typeof window !== 'undefined') {
+                          if (_prevSelectedClient != null) {
+                            window.localStorage.setItem('cart_v1_client', String(_prevSelectedClient));
                           }
-                          const entries = Object.keys(newCart).filter(k => k !== 'store' && k !== 'tienda' && k !== 'storeId' && k !== 'tiendaId' && k !== 'storeName' && k !== 'tiendaName');
-                          if (entries.length === 0) {
-                            try { window.localStorage.removeItem('cart_v1'); } catch (e) {}
-                            setCart({});
-                          } else {
-                            try { window.localStorage.setItem('cart_v1', JSON.stringify(newCart)); } catch (e) {}
-                            setCart(newCart);
-                          }
-                        } catch (e) { console.error('error clearing invoiced items after print', e); }
-                      }
+                        }
+                      } catch (e) {}
                       setPrintSnapshot(null);
+                      try { if (_prevSelectedClient != null) setSelectedClientId(_prevSelectedClient); } catch(e){}
                       setTimeout(() => setPrintInvoiceNumber(null), 500);
                     }, 300);
                   }, 120);

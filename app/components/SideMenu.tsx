@@ -16,6 +16,7 @@ const ITEMS: Array<{ label: string; href: string }> = [
   { label: "PRODUCTOS", href: "/admin/products" },
   { label: "CLIENTES", href: "/admin/clients" },
   { label: "FACTURAS", href: "/admin/invoices" },
+  { label: "ZONAS", href: "/admin/zonas" },
 ];
 
 

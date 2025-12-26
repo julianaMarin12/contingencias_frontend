@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import SideMenu from "../../components/SideMenu";
 import facturasApi from "../../lib/Facturas";
+import productsApi from "../../lib/products";
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -20,8 +21,72 @@ export default function InvoicesPage() {
           setError(`Error ${res.status}`);
         } else {
           // normalize: prefer res.facturas or res.data
-          const list = res.facturas ?? (Array.isArray(res.data) ? res.data : (res.data?.data ?? res.data ?? []));
-          setInvoices(list || []);
+          const rawList = res.facturas ?? (Array.isArray(res.data) ? res.data : (res.data?.data ?? res.data ?? []));
+          const list = rawList || [];
+          // enrich missing product names by querying /productos/{id}
+          const enriched = await Promise.all(list.map(async (f: any) => {
+            try {
+              const itemsArr = Array.isArray(f.items) ? f.items : (Array.isArray(f.detalles) ? f.detalles : []);
+              // gather product ids that lack a readable name
+              const idsToFetch = new Set<string>();
+              for (const it of itemsArr) {
+                const nameCand = it?.nombre || it?.name || it?.producto_nombre || it?.producto?.nombre || it?.producto?.name || it?.product?.nombre || it?.product?.name || '';
+                if (!nameCand || String(nameCand).trim() === '' || /^\d+$/.test(String(nameCand).trim())) {
+                  const pid = (it.producto_id ?? it.producto?.id ?? it.producto_id ?? it.productoId ?? it.producto)?.toString?.() ?? '';
+                  if (pid) idsToFetch.add(pid.replace(/\D/g, ''));
+                }
+              }
+              const fetchedById: Record<string, any> = {};
+                if (idsToFetch.size > 0) {
+                await Promise.all(Array.from(idsToFetch).map(async (pid) => {
+                  try {
+                    // try both /productos/{id} and /productos?id={id}
+                    const tryUrls = [`/productos/${encodeURIComponent(String(pid))}`, `/productos?id=${encodeURIComponent(String(pid))}`];
+                    if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_BASE) {
+                      const base = (process.env.NEXT_PUBLIC_API_BASE || '').replace(/\/+$/g, '');
+                      tryUrls.push(base + '/productos/' + encodeURIComponent(String(pid)));
+                      tryUrls.push(base + '/productos?id=' + encodeURIComponent(String(pid)));
+                    }
+                    for (const url of tryUrls) {
+                      try {
+                        const headers: any = {};
+                        try { const token = typeof window !== 'undefined' ? window.localStorage.getItem('access_token') || window.localStorage.getItem('token') : null; if (token) headers.Authorization = `Bearer ${token}`; } catch (e) {}
+                        const r = await fetch(url, { headers });
+                        const d = await (async () => { try { return await r.json(); } catch { return null; } })();
+                        const prod = d?.data ? (Array.isArray(d.data) ? d.data[0] : d.data) : (Array.isArray(d) ? d[0] : d);
+                        if (prod) { fetchedById[pid] = prod; break; }
+                      } catch (e) { continue; }
+                    }
+                  } catch (e) {}
+                }));
+                // fallback: if still missing, try loading product list once
+                const missing = Array.from(idsToFetch).filter(id => !fetchedById[id]);
+                if (missing.length > 0) {
+                  try {
+                    const listRes = await productsApi.listProducts();
+                    const plist = listRes.products || listRes.data || [];
+                    for (const p of plist) {
+                      const pid = String(p.producto_id ?? p.id ?? p.producto_id ?? p.id ?? '').replace(/\D/g, '');
+                      if (pid && missing.includes(pid)) fetchedById[pid] = p;
+                    }
+                  } catch (e) {}
+                }
+              }
+              // map back names
+              const mappedItems = itemsArr.map((it: any) => {
+                const cand = it?.nombre || it?.name || it?.producto_nombre || it?.producto?.nombre || it?.producto?.name || it?.product?.nombre || it?.product?.name || '';
+                if (cand && String(cand).trim() && !/^\d+$/.test(String(cand).trim())) return it;
+                const pid = String(it.producto_id ?? it.producto?.id ?? it.productoId ?? '').replace(/\D/g, '');
+                const prod = pid ? fetchedById[pid] : null;
+                if (prod) {
+                  return { ...it, nombre: prod.nombre || prod.name || prod.producto_nombre || prod.titulo || String(prod.id || pid) };
+                }
+                return it;
+              });
+              return { ...f, items: mappedItems, detalles: mappedItems };
+            } catch (e) { return f; }
+          }));
+          setInvoices(enriched || []);
         }
       } catch (err: any) {
         if (!mounted) return;
