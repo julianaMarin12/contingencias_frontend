@@ -51,6 +51,11 @@ export default function UserEditModal({ open, title = "Editar usuario", nombre, 
     }
   }, [open]);
 
+  function sanitizeText(s: any, max = 150) { try { return String(s ?? '').trim().replace(/[<>]/g,'').slice(0, max); } catch { return ''; } }
+  function isValidEmail(e: string) { try { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e); } catch { return false; } }
+
+  const canSaveUser = Boolean(sanitizeText(localNombre).length > 0) && isValidEmail(String(localEmail)) && (localRol ? Number.isFinite(Number(localRol)) : true) && (!showPassword || (password.length >= 6 && password === confirmPassword));
+
   if (!open) return null;
 
   return (
@@ -83,9 +88,13 @@ export default function UserEditModal({ open, title = "Editar usuario", nombre, 
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 18 }}>
           <button ref={cancelRef} onClick={onCancel} disabled={loading} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5d9", background: "white", cursor: "pointer" }}>Cancelar</button>
           <button onClick={async () => {
-            if (showPassword && password !== confirmPassword) { alert('Las contraseñas no coinciden'); return; }
-            await onConfirm(localNombre, localEmail, localRol, showPassword ? password : undefined);
-          }} disabled={loading || !localNombre || !localEmail || (showPassword && !password)} style={{ padding: "8px 12px", borderRadius: 8, border: "none", color: "white", background: "linear-gradient(90deg,#25ABB9 0%, #19A7A6 100%)", cursor: "pointer" }}>{loading ? "Guardando..." : "Guardar"}</button>
+            if (!canSaveUser) { alert('Revisa los campos: nombre, email y contraseña (si aplica).'); return; }
+            const nameSan = sanitizeText(localNombre, 150);
+            const emailSan = String(localEmail).trim().slice(0,200);
+            const roleSan = localRol ? Number(localRol) : undefined;
+            const pwd = showPassword ? password : undefined;
+            await onConfirm(nameSan, emailSan, roleSan, pwd);
+          }} disabled={loading || !canSaveUser} style={{ padding: "8px 12px", borderRadius: 8, border: "none", color: "white", background: "linear-gradient(90deg,#25ABB9 0%, #19A7A6 100%)", cursor: "pointer" }}>{loading ? "Guardando..." : "Guardar"}</button>
         </div>
       </div>
     </div>

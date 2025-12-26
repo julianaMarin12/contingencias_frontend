@@ -21,18 +21,15 @@ export type Product = { producto_id?: number; id?: number; nombre?: string; [k: 
 
 function buildTryUrls(path: string) {
 	const urls: string[] = [];
-	// In browser, prefer relative paths only so Next dev proxy handles backend requests (avoids CORS).
 	if (typeof window !== 'undefined') {
 		urls.push(path);
 		return urls;
 	}
-	// try relative first (for server-side or tooling), then explicit API_BASE
 	urls.push(path);
 	if (API_BASE_CLEAN) {
 		if (API_BASE_CLEAN.endsWith(path)) urls.push(API_BASE_CLEAN);
 		else urls.push(`${API_BASE_CLEAN}${path}`);
 	}
-	// local dev fallback
 	if (!API_BASE_CLEAN && typeof process !== 'undefined' && process.env.NODE_ENV !== 'production') {
 		urls.push(`${API_BASE}${path}`);
 	}
@@ -77,7 +74,6 @@ export async function listProducts(): Promise<{ ok: boolean; status: number; pro
 
 export async function createProductFile(file: File): Promise<{ ok: boolean; status: number; data: any }> {
 	const tryUrls = buildTryUrls('/productos/upload');
-	// also try fallback to /productos
 	tryUrls.push(...buildTryUrls('/productos'));
 	let lastRes: Response | null = null;
 	for (const url of tryUrls) {
@@ -85,7 +81,7 @@ export async function createProductFile(file: File): Promise<{ ok: boolean; stat
 			const token = readToken();
 			const fd = new FormData();
 			fd.append('file', file, file.name);
-			const headers: Record<string, string> = {}; // don't set Content-Type for FormData
+			const headers: Record<string, string> = {}; 
 			if (token) headers.Authorization = `Bearer ${token}`;
 			const res = await fetch(url, { method: 'POST', headers, body: fd });
 			lastRes = res;

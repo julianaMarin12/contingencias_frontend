@@ -13,6 +13,10 @@ export default function StoreSelectCard() {
   function handleContinue(e: React.FormEvent) {
     e.preventDefault();
     if (!store) return; 
+    if (!/^\d+$/.test(String(store))) {
+      alert('Selected store id is not valid.');
+      return;
+    }
     try { if (typeof window !== 'undefined') window.localStorage.setItem('storeId', String(store)); } catch (e) {}
     router.push(`/products`);
   }
@@ -72,12 +76,11 @@ export default function StoreSelectCard() {
               }
               if (items.length === 0) {
                 const vals = Object.values(maybeStore);
-                if (vals.length > 0 && vals.every((v) => v && typeof v === 'object' && (v.nombre || v.name || v.tienda_id || v.id))) items = vals as any[];
+                if (vals.length > 0 && vals.every((v: any) => v && typeof v === 'object' && (v.nombre || v.name || v.tienda_id || v.id))) items = vals as any[];
               }
             }
           }
 
-          // Filter by usuarioId when provided
           if (usuarioId !== undefined && usuarioId !== null) {
             const uidNum = Number(usuarioId);
             items = items.filter((it: any) => {

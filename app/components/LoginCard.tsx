@@ -27,6 +27,7 @@ export default function LoginCard() {
       const token = data?.token || data?.accessToken || data?.data?.token;
       if (token) {
         try { localStorage.setItem("token", token); } catch (e) { /* ignore */ }
+        try { localStorage.setItem("access_token", token); } catch (e) { /* ignore */ }
       }
 
       let userObj: any = null;
@@ -48,7 +49,6 @@ export default function LoginCard() {
         setDebugInfo(JSON.stringify(dbg, null, 2));
       } catch (e) {}
 
-      // Store user id in localStorage for later API calls (compat: userId, usuario_id, id)
       try {
         const uid = userObj?.usuario_id ?? userObj?.id ?? userObj?.user_id ?? userObj?.usuarioId ?? userObj?.id_usuario ?? null;
         if (uid !== null && typeof uid !== 'undefined') {

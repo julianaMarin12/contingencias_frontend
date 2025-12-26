@@ -27,7 +27,6 @@ export default function AdminProductsPage() {
     setLoading(true);
     const res = await productsApi.listProducts();
     setLoading(false);
-    // accept products from multiple shapes: res.products, res.data (array), res.data.productos, or object-indexed
     const fromApi: Product[] = (res.products && Array.isArray(res.products)) ? res.products as Product[] : [];
     if (fromApi.length) {
       setProducts(fromApi);

@@ -36,9 +36,7 @@ export default function StoresPage() {
   const [zonaNames, setZonaNames] = useState<Record<string, string>>({});
 
   useEffect(() => { let cancelled = false; async function f(){ setLoading(true); setError(null);
-    const storedUid = (typeof window !== 'undefined') ? (localStorage.getItem('userId') ?? localStorage.getItem('usuario_id') ?? localStorage.getItem('id')) : null;
-    const uid = storedUid ? Number(storedUid) : undefined;
-    const r = await loadStores(uid);
+    const r = await loadStores();
     if (cancelled) return; if (!r.ok) { setStores([]); setError(`Error ${r.status}`); } else {
         const data = r.data;
         let arr: any[] = [];
@@ -115,9 +113,7 @@ export default function StoresPage() {
   const reload = async () => {
     setLoading(true); setError(null);
     try {
-      const storedUid = (typeof window !== 'undefined') ? (localStorage.getItem('userId') ?? localStorage.getItem('usuario_id') ?? localStorage.getItem('id')) : null;
-      const uid = storedUid ? Number(storedUid) : undefined;
-      const r = await loadStores(uid);
+      const r = await loadStores();
       if (!r.ok) { setStores([]); setError((r as any).data?.message ?? `Error ${r.status}`); }
       else {
         const data = r.data;
@@ -139,6 +135,9 @@ export default function StoresPage() {
 
   async function handleCreate() {
     const payload: any = { nombre, ciudad, direccion };
+    payload.nombre = String(payload.nombre ?? '').trim().slice(0, 200);
+    payload.ciudad = String(payload.ciudad ?? '').trim().slice(0, 200);
+    payload.direccion = String(payload.direccion ?? '').trim().slice(0, 400);
     if (typeof usuarioId !== 'undefined') payload.usuario_id = usuarioId;
     if (typeof zonaId !== 'undefined') payload.zona_id = zonaId;
     setLoading(true);
@@ -176,6 +175,9 @@ export default function StoresPage() {
     if (!editingStore) return;
     const id = editingStore.tienda_id ?? editingStore.id;
     const payload: any = { nombre, ciudad, direccion };
+    payload.nombre = String(payload.nombre ?? '').trim().slice(0, 200);
+    payload.ciudad = String(payload.ciudad ?? '').trim().slice(0, 200);
+    payload.direccion = String(payload.direccion ?? '').trim().slice(0, 400);
     if (typeof usuarioId !== 'undefined') payload.usuario_id = usuarioId;
     if (typeof zonaId !== 'undefined') payload.zona_id = zonaId;
     setLoading(true);

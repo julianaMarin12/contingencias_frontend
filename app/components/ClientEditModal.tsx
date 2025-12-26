@@ -36,6 +36,20 @@ export default function ClientEditModal({ open, nombre = "", cedula = "", correo
     }
   }, [open]);
 
+  function sanitizeText(s: any, max = 200) {
+    try { return String(s ?? "").trim().replace(/[<>]/g, '').slice(0, max); } catch { return ''; }
+  }
+
+  function isValidEmail(e: string) {
+    try { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e); } catch { return false; }
+  }
+
+  function sanitizeCedula(c: any) {
+    try { return String(c ?? '').trim().replace(/[^0-9\-]/g, '').slice(0, 50); } catch { return String(c ?? ''); }
+  }
+
+  const canSave = Boolean(sanitizeText(localNombre).length > 0) && (localCorreo ? isValidEmail(String(localCorreo)) : true);
+
   if (!open) return null;
 
   return (
@@ -52,7 +66,11 @@ export default function ClientEditModal({ open, nombre = "", cedula = "", correo
         </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 18 }}>
           <button ref={cancelRef} onClick={onCancel} disabled={loading} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5d9', background: 'white', cursor: 'pointer' }}>Cancelar</button>
-          <button onClick={async () => { await onConfirm({ nombre: localNombre, cedula: localCedula, correo: localCorreo, Empleado: localEmpleado }); }} disabled={loading} style={{ padding: '8px 12px', borderRadius: 8, border: 'none', color: 'white', background: 'linear-gradient(90deg,#25ABB9 0%, #19A7A6 100%)', cursor: 'pointer' }}>{loading ? 'Guardando...' : 'Guardar'}</button>
+          <button onClick={async () => {
+            if (!canSave) { alert('Por favor revisa los campos requeridos.'); return; }
+            const payload = { nombre: sanitizeText(localNombre, 200), cedula: sanitizeCedula(localCedula), correo: localCorreo ? String(localCorreo).trim().slice(0,200) : undefined, Empleado: !!localEmpleado };
+            await onConfirm(payload);
+          }} disabled={loading || !canSave} style={{ padding: '8px 12px', borderRadius: 8, border: 'none', color: 'white', background: 'linear-gradient(90deg,#25ABB9 0%, #19A7A6 100%)', cursor: 'pointer' }}>{loading ? 'Guardando...' : 'Guardar'}</button>
         </div>
       </div>
     </div>

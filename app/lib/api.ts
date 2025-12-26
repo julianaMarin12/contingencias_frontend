@@ -7,6 +7,13 @@ async function safeJson(res: Response) {
 const API_BASE = typeof process !== "undefined" ? (process.env.NEXT_PUBLIC_API_BASE || "") : "";
 const API_BASE_CLEAN = API_BASE ? API_BASE.replace(/\/+$/g, "") : "";
 
+function sanitizeId(id: any): string | null {
+  if (id === undefined || id === null) return null;
+  const s = String(id).trim();
+  if (/^\d+$/.test(s)) return encodeURIComponent(s);
+  return null;
+}
+
 function getAuthHeaders(): HeadersInit {
   try {
     if (typeof window === "undefined") return {};
@@ -113,14 +120,13 @@ export async function getRoles(): Promise<ApiResult> {
 
 export async function getStores(usuarioId?: string | number): Promise<ApiResult> {
   const tryUrls: string[] = [];
-  if (usuarioId !== undefined && usuarioId !== null) {
-    const idStr = encodeURIComponent(String(usuarioId));
-    // Try path-based endpoint first (/tiendas/{id}) then query param fallback
-    tryUrls.push(`/tiendas/${idStr}`);
-    tryUrls.push(`/tiendas?usuario_id=${idStr}`);
+  const sanitized = sanitizeId(usuarioId);
+  if (sanitized !== null) {
+    tryUrls.push(`/tiendas/${sanitized}`);
+    tryUrls.push(`/tiendas?usuario_id=${sanitized}`);
     if (API_BASE_CLEAN) {
-      tryUrls.push(`${API_BASE_CLEAN}/tiendas/${idStr}`);
-      tryUrls.push(`${API_BASE_CLEAN}/tiendas?usuario_id=${idStr}`);
+      tryUrls.push(`${API_BASE_CLEAN}/tiendas/${sanitized}`);
+      tryUrls.push(`${API_BASE_CLEAN}/tiendas?usuario_id=${sanitized}`);
     }
   } else {
     tryUrls.push(`/tiendas`);
@@ -179,11 +185,14 @@ export async function createStore(payload: any): Promise<ApiResult> {
 }
 
 export async function updateStore(id: number | string, payload: any): Promise<ApiResult> {
-  const idStr = String(id);
+  const idSan = sanitizeId(id);
   const tryUrls: string[] = [];
-  tryUrls.push(`/tiendas/${idStr}`);
+  if (idSan !== null) tryUrls.push(`/tiendas/${idSan}`);
   tryUrls.push(`/tiendas`);
-  if (API_BASE_CLEAN) tryUrls.push(`${API_BASE_CLEAN}/tiendas`, `${API_BASE_CLEAN}/tiendas/${idStr}`);
+  if (API_BASE_CLEAN) {
+    if (idSan !== null) tryUrls.push(`${API_BASE_CLEAN}/tiendas/${idSan}`);
+    tryUrls.push(`${API_BASE_CLEAN}/tiendas`);
+  }
 
   let lastRes: Response | null = null;
   for (const url of tryUrls) {
@@ -206,10 +215,10 @@ export async function updateStore(id: number | string, payload: any): Promise<Ap
 }
 
 export async function deleteStore(id: number | string): Promise<ApiResult> {
-  const idStr = String(id);
+  const idSan = sanitizeId(id);
   const tryUrls: string[] = [];
-  tryUrls.push(`/tiendas/${idStr}`);
-  if (API_BASE_CLEAN) tryUrls.push(`${API_BASE_CLEAN}/tiendas/${idStr}`);
+  if (idSan !== null) tryUrls.push(`/tiendas/${idSan}`);
+  if (API_BASE_CLEAN && idSan !== null) tryUrls.push(`${API_BASE_CLEAN}/tiendas/${idSan}`);
 
   let lastRes: Response | null = null;
   for (const url of tryUrls) {
@@ -232,13 +241,18 @@ export async function deleteStore(id: number | string): Promise<ApiResult> {
 }
 
 export async function getStoreById(id: number | string): Promise<ApiResult> {
-  const idStr = String(id);
+  const idSan = sanitizeId(id);
   const tryUrls: string[] = [];
-  tryUrls.push(`/tiendas/${idStr}`);
-  tryUrls.push(`/tiendas?id=${encodeURIComponent(idStr)}`);
-  if (API_BASE_CLEAN) {
-    tryUrls.push(`${API_BASE_CLEAN}/tiendas/${idStr}`);
-    tryUrls.push(`${API_BASE_CLEAN}/tiendas?id=${encodeURIComponent(idStr)}`);
+  if (idSan !== null) {
+    tryUrls.push(`/tiendas/${idSan}`);
+    tryUrls.push(`/tiendas?id=${idSan}`);
+    if (API_BASE_CLEAN) {
+      tryUrls.push(`${API_BASE_CLEAN}/tiendas/${idSan}`);
+      tryUrls.push(`${API_BASE_CLEAN}/tiendas?id=${idSan}`);
+    }
+  } else {
+    tryUrls.push('/tiendas');
+    if (API_BASE_CLEAN) tryUrls.push(`${API_BASE_CLEAN}/tiendas`);
   }
 
   let lastRes: Response | null = null;

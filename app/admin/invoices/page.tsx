@@ -20,14 +20,11 @@ export default function InvoicesPage() {
           setInvoices([]);
           setError(`Error ${res.status}`);
         } else {
-          // normalize: prefer res.facturas or res.data
           const rawList = res.facturas ?? (Array.isArray(res.data) ? res.data : (res.data?.data ?? res.data ?? []));
           const list = rawList || [];
-          // enrich missing product names by querying /productos/{id}
           const enriched = await Promise.all(list.map(async (f: any) => {
             try {
               const itemsArr = Array.isArray(f.items) ? f.items : (Array.isArray(f.detalles) ? f.detalles : []);
-              // gather product ids that lack a readable name
               const idsToFetch = new Set<string>();
               for (const it of itemsArr) {
                 const nameCand = it?.nombre || it?.name || it?.producto_nombre || it?.producto?.nombre || it?.producto?.name || it?.product?.nombre || it?.product?.name || '';
@@ -40,7 +37,6 @@ export default function InvoicesPage() {
                 if (idsToFetch.size > 0) {
                 await Promise.all(Array.from(idsToFetch).map(async (pid) => {
                   try {
-                    // try both /productos/{id} and /productos?id={id}
                     const tryUrls = [`/productos/${encodeURIComponent(String(pid))}`, `/productos?id=${encodeURIComponent(String(pid))}`];
                     if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_BASE) {
                       const base = (process.env.NEXT_PUBLIC_API_BASE || '').replace(/\/+$/g, '');
@@ -59,7 +55,6 @@ export default function InvoicesPage() {
                     }
                   } catch (e) {}
                 }));
-                // fallback: if still missing, try loading product list once
                 const missing = Array.from(idsToFetch).filter(id => !fetchedById[id]);
                 if (missing.length > 0) {
                   try {
@@ -72,7 +67,6 @@ export default function InvoicesPage() {
                   } catch (e) {}
                 }
               }
-              // map back names
               const mappedItems = itemsArr.map((it: any) => {
                 const cand = it?.nombre || it?.name || it?.producto_nombre || it?.producto?.nombre || it?.producto?.name || it?.product?.nombre || it?.product?.name || '';
                 if (cand && String(cand).trim() && !/^\d+$/.test(String(cand).trim())) return it;
@@ -125,17 +119,13 @@ export default function InvoicesPage() {
                     ) : (
                       invoices.map((f: any) => {
                         const numero = f.numero ?? f.id ?? f.factura_id ?? '';
-                        // tienda name heuristics
                         const tiendaName = (f.tienda && (f.tienda.nombre || f.tienda.name)) || f.tienda_nombre || f.tiendaName || f.tienda_id || '';
-                        // cliente name heuristics
                         const clienteName = (f.cliente && (f.cliente.nombre || f.cliente.name)) || f.cliente_nombre || f.clienteName || f.cliente_id || '';
-                        // items summary
                         const itemsArr = Array.isArray(f.items) ? f.items : (Array.isArray(f.detalles) ? f.detalles : []);
                         const itemsCount = itemsArr.length;
                         const itemNames = itemsArr.slice(0,3).map((it: any) => {
                           const cand = it?.nombre || it?.name || it?.producto_nombre || it?.producto?.nombre || it?.producto?.name || it?.product?.nombre || it?.product?.name || '';
                           const s = cand ? String(cand).trim() : '';
-                          // skip pure numeric values (ids)
                           if (!s || /^\d+$/.test(s)) return null;
                           return s;
                         }).filter(Boolean).join(', ');

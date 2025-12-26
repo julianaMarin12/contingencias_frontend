@@ -1,7 +1,6 @@
 import { ApiResult } from "./api";
 
 function getBase() {
-  // Use relative endpoints from the browser to let Next dev server proxy requests and avoid CORS
   if (typeof window !== 'undefined') return "";
   const API_BASE = typeof process !== "undefined" ? (process.env.NEXT_PUBLIC_API_BASE || "") : "";
   return API_BASE ? API_BASE.replace(/\/+$|\s+/g, "") : "";

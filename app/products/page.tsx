@@ -38,6 +38,10 @@ export default function Page() {
       storeId = window.localStorage.getItem('storeId') ?? window.localStorage.getItem('selectedStore') ?? window.localStorage.getItem('store_id') ?? null;
     } catch (e) { storeId = null; }
   }
+  if (storeId && !/^\d+$/.test(String(storeId))) {
+    try { if (typeof window !== 'undefined') { window.localStorage.removeItem('storeId'); } } catch (e) {}
+    storeId = null;
+  }
   const [storeName, setStoreName] = useState<string | null>(null);
   const [storeZonaId, setStoreZonaId] = useState<string | number | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -52,7 +56,6 @@ export default function Page() {
   const [cart, setCart] = useState<Record<string, CartItem>>({});
   const [pendingAdd, setPendingAdd] = useState<Record<string, number>>({});
 
-  // load familias on mount
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -73,7 +76,6 @@ export default function Page() {
       if (!storeId) return;
       setLoadingStore(true);
       try {
-        // try multiple endpoints to find store by id
         const tryUrls = [] as string[];
         tryUrls.push(`/tiendas/${encodeURIComponent(String(storeId))}`);
         tryUrls.push(`/tiendas?id=${encodeURIComponent(String(storeId))}`);
@@ -92,7 +94,6 @@ export default function Page() {
         }
         const candidate = got?.data ? (Array.isArray(got.data) ? got.data[0] : got.data) : (Array.isArray(got) ? got[0] : got);
         const name = candidate?.nombre ?? candidate?.name ?? null;
-        // attempt to read zona id from tienda object (several possible keys)
         const zonaIdFromStore = candidate?.zona_id ?? candidate?.zonaId ?? candidate?.zona?.id ?? candidate?.zona?.zona_id ?? null;
         if (mounted) {
           setStoreName(name);
@@ -106,10 +107,8 @@ export default function Page() {
         async function loadProducts() {
       setLoadingProducts(true);
       try {
-        // build path depending on selected filters
         const parts: string[] = [];
         if (categoryId) parts.push(`categoria/${encodeURIComponent(String(categoryId))}`);
-        // include zona from tienda if available as a path segment
         if (storeZonaId) parts.push(`zona/${encodeURIComponent(String(storeZonaId))}`);
         let qs = '';
         if (storeId) qs = `?tienda_id=${encodeURIComponent(String(storeId))}`;
@@ -129,7 +128,6 @@ export default function Page() {
             const data = await (async () => { try { return await res.json(); } catch { return null; } })();
             if (data) {
               last = data;
-              // normalize
               let arr: any[] = [];
               if (Array.isArray(data)) arr = data;
               else if (Array.isArray(data.data)) arr = data.data;
@@ -152,7 +150,6 @@ export default function Page() {
     return () => { mounted = false; };
   }, [storeId, categoryId]);
 
-  // load cart from localStorage
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
@@ -176,7 +173,6 @@ export default function Page() {
     try {
       if (val == null) return '';
       const n = Number(val) || 0;
-      // if integer-ish, show no decimals, otherwise show two decimals
       const isInt = Math.abs(n - Math.round(n)) < 0.01;
       if (isInt) return `$${n.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`;
       return `$${n.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -242,9 +238,7 @@ export default function Page() {
           if (qty <= 0) continue;
           const namePlaceholder = `Producto ${id}`;
           const existing = next[id]?.qty || 0;
-          // add placeholder immediately so it shows in the cart
           next[id] = { ...(next[id] || {}), qty: existing + qty, name: next[id]?.name ?? namePlaceholder, price: next[id]?.price ?? 0, pendingDetails: true, fromInvoice: true } as any;
-          // background fetch to retrieve full product/prices info from /productos
           (async (pid: string, qtyLocal: number) => {
             try {
               const tryUrls = [] as string[];
@@ -267,7 +261,6 @@ export default function Page() {
                 } catch (e) { continue; }
               }
               if (!fetched) return;
-              // find precio entry matching storeZonaId if present
               const preciosArr = (fetched.precios || fetched.precios_por_zona || fetched.preciosPorZona || fetched.precios_zona || fetched.preciosDetalle || []);
               let chosen: any = null;
               if (Array.isArray(preciosArr) && preciosArr.length) {
@@ -282,7 +275,6 @@ export default function Page() {
               const impoconsumoFromApi = chosen ? Number(chosen.impoconsumo ?? 0) : (fetched.impoconsumo ?? 0);
               const icuiFromApi = chosen ? Number(chosen.icui ?? 0) : (fetched.icui ?? 0);
               const nameFromApi = fetched.nombre ?? fetched.name ?? namePlaceholder;
-              // update cart item with details
               setCart((c2) => {
                 const copy = { ...c2 } as any;
                 const existing2 = copy[pid]?.qty || 0;
@@ -314,7 +306,6 @@ export default function Page() {
   }
 
   function dec(id: string) {
-    // if there is a pending add for this product, reduce pending first
     setPendingAdd((p) => {
       const cur = p[id] || 0;
       if (cur > 0) {
@@ -328,7 +319,6 @@ export default function Page() {
       return p;
     });
 
-    // if no pending, reduce actual cart
     setCart((c) => {
       const cur = c[id]?.qty || 0;
       if (cur <= 1) {
@@ -422,13 +412,11 @@ export default function Page() {
         categories={familias.map((it) => ({ id: it.familia_id ?? it.id, label: it.nombre ?? String(it.familia_id ?? it.id) }))}
         selected={selectedFamiliaId}
         onSelect={(id) => {
-          // id here is familia id — set selected familia and expose its categorias
           setSelectedFamiliaId(id);
           const fam = familias.find((f) => String(f.familia_id ?? f.id) === String(id));
           if (fam && Array.isArray((fam as any).categorias)) {
             const cats = ((fam as any).categorias || []).map((c: any) => ({ id: c.categoria_id ?? c.id, label: c.nombre ?? String(c.categoria_id ?? c.id) }));
             setAvailableCategories(cats);
-            // auto-select the first category's id
             if (cats.length > 0) {
               const first = cats[0];
               console.debug('Auto-selecting first category ->', first);

@@ -1,7 +1,6 @@
 import { ApiResult } from "./api";
 
 function getBase() {
-  // When running in the browser, prefer relative URLs only (avoid absolute backend origin to prevent CORS)
   if (typeof window !== 'undefined') return "";
   const API_BASE = typeof process !== "undefined" ? (process.env.NEXT_PUBLIC_API_BASE || "") : "";
   return API_BASE ? API_BASE.replace(/\/+$/g, "") : "";

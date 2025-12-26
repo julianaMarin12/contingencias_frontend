@@ -30,6 +30,9 @@ export default function EditModal({ open, nombre = "", descripcion = "", onCance
     }
   }, [open]);
 
+  function sanitizeText(s: any, max = 150) { try { return String(s ?? '').trim().replace(/[<>]/g,'').slice(0, max); } catch { return ''; } }
+  const canSave = sanitizeText(localNombre).length > 0;
+
   if (!open) return null;
 
   return (
@@ -42,7 +45,7 @@ export default function EditModal({ open, nombre = "", descripcion = "", onCance
         </div>
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 18 }}>
           <button ref={cancelRef} onClick={onCancel} disabled={loading} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5d9", background: "white", cursor: "pointer" }}>Cancelar</button>
-          <button onClick={async () => { await onConfirm(localNombre, localDesc); }} disabled={loading} style={{ padding: "8px 12px", borderRadius: 8, border: "none", color: "white", background: "linear-gradient(90deg,#25ABB9 0%, #19A7A6 100%)", cursor: "pointer" }}>{loading ? "Guardando..." : "Guardar"}</button>
+          <button onClick={async () => { if (!canSave) { alert('El nombre es requerido'); return; } await onConfirm(sanitizeText(localNombre), sanitizeText(localDesc, 1000)); }} disabled={loading || !canSave} style={{ padding: "8px 12px", borderRadius: 8, border: "none", color: "white", background: "linear-gradient(90deg,#25ABB9 0%, #19A7A6 100%)", cursor: "pointer" }}>{loading ? "Guardando..." : "Guardar"}</button>
         </div>
       </div>
     </div>

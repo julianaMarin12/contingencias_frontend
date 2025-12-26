@@ -1,7 +1,5 @@
 export type ApiResult<T = any> = { ok: boolean; status: number; data: T | null };
 
-// Prefer a configured API base when present (NEXT_PUBLIC_API_BASE), otherwise
-// fall back to using the current origin or a relative path.
 const API_BASE = typeof process !== 'undefined' ? (process.env.NEXT_PUBLIC_API_BASE || '') : '';
 const API_BASE_CLEAN = API_BASE ? API_BASE.replace(/\/+$/g, '') : '';
 
