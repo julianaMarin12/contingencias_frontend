@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import SideMenu from "../../components/SideMenu";
 import ActionsNav from "../../components/ActionsNav";
 import ConfirmModal from "../../components/ConfirmModal";
+import AlertModal from "../../components/AlertModal";
 import StoreEditModal from "../../components/StoreEditModal";
 import { loadStores, createStore, updateStore, deleteStore, Store } from "../../lib/stores";
 import { loadUsers, User } from "../../lib/users";
@@ -25,6 +26,8 @@ export default function StoresPage() {
   const [zonaId, setZonaId] = useState<number | undefined>(undefined);
   const [users, setUsers] = useState<User[]>([]);
   const [zonas, setZonas] = useState<Zona[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState<string>("");
   
   function getUsuarioDisplay(s: Store) {
     const uidRaw = s.usuario_id ?? s.usuarioId ?? null;
@@ -144,7 +147,12 @@ export default function StoresPage() {
     try {
       const res = await createStore(payload);
       if (!res.ok) {
-        alert(`Error al crear: ${res.status}`);
+        const serverObj = (res as any)?.data ?? null;
+        const serverMsg = serverObj?.message || serverObj?.msg || null;
+        const serverDetail = serverObj?.detail || (serverObj?.error && (serverObj.error.detail || serverObj.error.message)) || null;
+        const msg = serverDetail ? `No se pudo crear la tienda: ${serverDetail}` : (serverMsg ? `No se pudo crear la tienda: ${serverMsg}` : `Error al crear: ${res.status}`);
+        setModalMessage(msg);
+        setModalOpen(true);
       } else {
         setNombre('');
         setCiudad('');
@@ -154,7 +162,7 @@ export default function StoresPage() {
         setActive('Listar');
         await reload();
       }
-    } catch (err: any) { alert(err?.message ?? String(err)); }
+    } catch (err: any) { setModalMessage(err?.message ?? String(err)); setModalOpen(true); }
     setLoading(false);
   }
 
@@ -183,9 +191,15 @@ export default function StoresPage() {
     setLoading(true);
     try {
       const res = await updateStore(id as any, payload);
-      if (!res.ok) alert(`Error al modificar: ${res.status}`);
-      else { await reload(); setShowEdit(false); setEditingStore(null); }
-    } catch (err: any) { alert(err?.message ?? String(err)); }
+      if (!res.ok) {
+        const serverObj = (res as any)?.data ?? null;
+        const serverMsg = serverObj?.message || serverObj?.msg || null;
+        const serverDetail = serverObj?.detail || (serverObj?.error && (serverObj.error.detail || serverObj.error.message)) || null;
+        const msg = serverDetail ? `No se pudo modificar la tienda: ${serverDetail}` : (serverMsg ? `No se pudo modificar la tienda: ${serverMsg}` : `Error al modificar: ${res.status}`);
+        setModalMessage(msg);
+        setModalOpen(true);
+      } else { await reload(); setShowEdit(false); setEditingStore(null); }
+    } catch (err: any) { setModalMessage(err?.message ?? String(err)); setModalOpen(true); }
     setLoading(false);
   }
 
@@ -350,12 +364,24 @@ export default function StoresPage() {
             )}
 
             <ConfirmModal open={showConfirm} title={toDelete ? `Eliminar tienda: ${toDelete.nombre}` : "Eliminar tienda"} message={toDelete ? <span>¿Deseas eliminar la tienda <strong>{toDelete.nombre}</strong>? Esta acción no se puede deshacer.</span> : "¿Deseas eliminar esta tienda?"} confirmLabel="Eliminar" cancelLabel="Cancelar" loading={false} onCancel={() => { setShowConfirm(false); setToDelete(null); }} onConfirm={async () => {
-              if (!toDelete) return; const id = toDelete.tienda_id ?? toDelete.id ?? null; if (!id) return; try { const res = await deleteStore(id as any); if (!res.ok) alert(`Error al eliminar: ${res.status}`); else await reload(); } catch (err: any) { alert(err?.message ?? String(err)); } setShowConfirm(false); setToDelete(null);
+              if (!toDelete) return; const id = toDelete.tienda_id ?? toDelete.id ?? null; if (!id) return; try {
+                const res = await deleteStore(id as any);
+                if (!res.ok) {
+                  const serverObj = (res as any)?.data ?? null;
+                  const serverMsg = serverObj?.message || serverObj?.msg || null;
+                  const serverDetail = serverObj?.detail || (serverObj?.error && (serverObj.error.detail || serverObj.error.message)) || null;
+                  const msg = serverDetail ? `No se pudo eliminar la tienda: ${serverDetail}` : (serverMsg ? `No se pudo eliminar la tienda: ${serverMsg}` : `Error al eliminar: ${res.status}`);
+                  setModalMessage(msg);
+                  setModalOpen(true);
+                } else await reload();
+              } catch (err: any) { setModalMessage(err?.message ?? String(err)); setModalOpen(true); } setShowConfirm(false); setToDelete(null);
             }} />
 
             {showEdit && editingStore && (
-              <StoreEditModal open={showEdit} title={`Editar tienda: ${editingStore.nombre ?? editingStore.name ?? ''}`} nombre={nombre} ciudad={ciudad} direccion={direccion} usuarioId={usuarioId} zonaId={zonaId} users={users} zonas={zonas} loading={loading} onCancel={() => { setShowEdit(false); setEditingStore(null); }} onConfirm={async (payload) => { try { setLoading(true); const id = editingStore.tienda_id ?? editingStore.id; const res = await updateStore(id as any, payload); if (!res.ok) alert(`Error al modificar: ${res.status}`); else { await reload(); setShowEdit(false); setEditingStore(null); } } catch (err: any) { alert(err?.message ?? String(err)); } finally { setLoading(false); } }} />
+              <StoreEditModal open={showEdit} title={`Editar tienda: ${editingStore.nombre ?? editingStore.name ?? ''}`} nombre={nombre} ciudad={ciudad} direccion={direccion} usuarioId={usuarioId} zonaId={zonaId} users={users} zonas={zonas} loading={loading} onCancel={() => { setShowEdit(false); setEditingStore(null); }} onConfirm={async (payload) => { try { setLoading(true); const id = editingStore.tienda_id ?? editingStore.id; const res = await updateStore(id as any, payload); if (!res.ok) { const serverObj = (res as any)?.data ?? null; const serverMsg = serverObj?.message || serverObj?.msg || null; const serverDetail = serverObj?.detail || (serverObj?.error && (serverObj.error.detail || serverObj.error.message)) || null; const msg = serverDetail ? `No se pudo modificar la tienda: ${serverDetail}` : (serverMsg ? `No se pudo modificar la tienda: ${serverMsg}` : `Error al modificar: ${res.status}`); setModalMessage(msg); setModalOpen(true); } else { await reload(); setShowEdit(false); setEditingStore(null); } } catch (err: any) { setModalMessage(err?.message ?? String(err)); setModalOpen(true); } finally { setLoading(false); } }} />
             )}
+
+            <AlertModal open={modalOpen} title="Atención" message={modalMessage} onClose={() => { setModalOpen(false); setModalMessage(''); }} />
 
           </div>
         </div>

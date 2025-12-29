@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import SideMenu from "../../components/SideMenu";
 import ActionsNav from "../../components/ActionsNav";
 import ConfirmModal from "../../components/ConfirmModal";
+import AlertModal from "../../components/AlertModal";
 import { loadZonas, createZona, updateZona, deleteZona, Zona } from "../../lib/zonas";
 
 export default function ZonasPage() {
@@ -18,6 +19,8 @@ export default function ZonasPage() {
   const [toDelete, setToDelete] = useState<Zona | null>(null);
   const [showEdit, setShowEdit] = useState(false);
   const [editingZona, setEditingZona] = useState<Zona | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState<string>("");
 
   useEffect(() => { let cancelled = false; async function f(){ setLoading(true); setError(null); const r = await loadZonas(); if (cancelled) return; if (!r.ok) { setZonas([]); setError(`Error ${r.status}`); } else { setZonas(r.zonas || []); } setLoading(false);} f(); return () => { cancelled = true; }; }, []);
 
@@ -28,19 +31,24 @@ export default function ZonasPage() {
   };
 
   async function handleCreate() {
-    if (!nombre && !codigo) { alert('Ingresa código o nombre'); return; }
+    if (!nombre && !codigo) { setModalMessage('Ingresa código o nombre'); setModalOpen(true); return; }
     const payload: any = { codigo: codigo || undefined, nombre: nombre || undefined };
     setLoading(true);
     try {
       const res = await createZona(payload);
       if (!res.ok) {
         console.error('zonas create error', res);
-        alert(`Error al crear: ${res.status}\n${JSON.stringify(res.data || res)}`);
+        const serverObj = (res as any)?.data ?? null;
+        const serverMsg = serverObj?.message || serverObj?.msg || null;
+        const serverDetail = serverObj?.detail || (serverObj?.error && (serverObj.error.detail || serverObj.error.message)) || null;
+        const msg = serverDetail ? `No se pudo crear la zona: ${serverDetail}` : (serverMsg ? `No se pudo crear la zona: ${serverMsg}` : `Error al crear (status ${res.status}).`);
+        setModalMessage(msg);
+        setModalOpen(true);
       } else {
         setCodigo(''); setNombre(''); setActive('Listar');
         await reload();
       }
-    } catch (err: any) { alert(err?.message ?? String(err)); }
+    } catch (err: any) { setModalMessage(err?.message ?? String(err)); setModalOpen(true); }
     setLoading(false);
   }
 
@@ -60,9 +68,14 @@ export default function ZonasPage() {
       const res = await updateZona(id as any, payload);
       if (!res.ok) {
         console.error('zonas update error', res);
-        alert(`Error al modificar: ${res.status}\n${JSON.stringify(res.data || res)}`);
+        const serverObj = (res as any)?.data ?? null;
+        const serverMsg = serverObj?.message || serverObj?.msg || null;
+        const serverDetail = serverObj?.detail || (serverObj?.error && (serverObj.error.detail || serverObj.error.message)) || null;
+        const msg = serverDetail ? `No se pudo modificar la zona: ${serverDetail}` : (serverMsg ? `No se pudo modificar la zona: ${serverMsg}` : `Error al modificar (status ${res.status}).`);
+        setModalMessage(msg);
+        setModalOpen(true);
       } else { await reload(); setShowEdit(false); setEditingZona(null); }
-    } catch (err: any) { alert(err?.message ?? String(err)); }
+    } catch (err: any) { setModalMessage(err?.message ?? String(err)); setModalOpen(true); }
     setLoading(false);
   }
 
@@ -193,7 +206,30 @@ export default function ZonasPage() {
               </div>
             )}
 
-            <ConfirmModal open={showConfirm} title={toDelete ? `Eliminar zona: ${toDelete.nombre}` : 'Eliminar zona'} message={toDelete ? <span>¿Deseas eliminar la zona <strong>{toDelete.nombre}</strong>? Esta acción no se puede deshacer.</span> : '¿Deseas eliminar esta zona?'} confirmLabel='Eliminar' cancelLabel='Cancelar' loading={false} onCancel={() => { setShowConfirm(false); setToDelete(null); }} onConfirm={async () => { if (!toDelete) return; const id = toDelete.zona_id ?? toDelete.id ?? null; if (!id) return; try { const res = await deleteZona(id as any); if (!res.ok) alert(`Error al eliminar: ${res.status}`); else await reload(); } catch (err: any) { alert(err?.message ?? String(err)); } setShowConfirm(false); setToDelete(null); }} />
+            <ConfirmModal open={showConfirm} title={toDelete ? `Eliminar zona: ${toDelete.nombre}` : 'Eliminar zona'} message={toDelete ? <span>¿Deseas eliminar la zona <strong>{toDelete.nombre}</strong>? Esta acción no se puede deshacer.</span> : '¿Deseas eliminar esta zona?'} confirmLabel='Eliminar' cancelLabel='Cancelar' loading={false} onCancel={() => { setShowConfirm(false); setToDelete(null); }} onConfirm={async () => {
+              if (!toDelete) return; const id = toDelete.zona_id ?? toDelete.id ?? null; if (!id) return;
+              try {
+                const res = await deleteZona(id as any);
+                if (!res.ok) {
+                  const serverObj = (res as any)?.data ?? null;
+                  const serverMsg = serverObj?.message || serverObj?.msg || null;
+                  const serverDetail = serverObj?.detail || (serverObj?.error && (serverObj.error.detail || serverObj.error.message)) || null;
+                  let msg = 'No se pudo eliminar la zona.';
+                  if (serverDetail && typeof serverDetail === 'string') msg = `No se puede eliminar porque está vinculado: ${serverDetail}`;
+                  else if (serverMsg && typeof serverMsg === 'string') msg = `No se pudo eliminar: ${serverMsg}`;
+                  else msg = `No se pudo eliminar la zona (status ${res.status}).`;
+                  setModalMessage(msg);
+                  setModalOpen(true);
+                } else {
+                  await reload();
+                }
+              } catch (err: any) {
+                setModalMessage(err?.message ?? String(err));
+                setModalOpen(true);
+              }
+              setShowConfirm(false); setToDelete(null);
+            }} />
+            <AlertModal open={modalOpen} title="Error" message={modalMessage} onClose={() => setModalOpen(false)} />
 
             {showEdit && editingZona && (
               <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>

@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import AlertModal from "../components/AlertModal";
 import { useSearchParams } from 'next/navigation';
 import clientsApi, { Client } from '../lib/clients';
 
@@ -33,6 +34,8 @@ export default function CartPage() {
   const [selectedClientId, setSelectedClientId] = useState<string | number | null>(null);
   const [creatingClient, setCreatingClient] = useState(false);
   const [newClient, setNewClient] = useState<{ nombre?: string; cedula?: string; correo?: string; Empleado?: boolean }>({});
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState<string>("");
 
   useEffect(() => {
     try {
@@ -269,9 +272,9 @@ export default function CartPage() {
                 />
                 <button onClick={() => {
                   const cleaned = String(searchCedula || '').replace(/\D/g, '');
-                  if (!cleaned) { alert('Ingresa una cédula para buscar'); return; }
+                  if (!cleaned) { setModalMessage('Ingresa una cédula para buscar'); setModalOpen(true); return; }
                   const found = clients.filter((c) => String(c.cedula ?? c.cedula) === cleaned || String(c.cedula ?? c.cedula) === searchCedula);
-                  if (found.length === 0) { alert('Cliente no encontrado'); setClientsFiltered([]); return; }
+                  if (found.length === 0) { setModalMessage('Cliente no encontrado'); setClientsFiltered([]); setModalOpen(true); return; }
                   setClientsFiltered(found);
                   const first = found[0];
                   setSelectedClientId(first.cliente_id ?? first.id ?? null);
@@ -314,9 +317,14 @@ export default function CartPage() {
                           setNewClient({});
                         } else {
                           console.error('createClient failed', res);
-                          alert('No se pudo crear el cliente: ' + (res?.data ? JSON.stringify(res.data) : `status ${res?.status}`));
+                          const serverObj = (res as any)?.data ?? null;
+                          const serverMsg = serverObj?.message || serverObj?.msg || null;
+                          const serverDetail = serverObj?.detail || (serverObj?.error && (serverObj.error.detail || serverObj.error.message)) || null;
+                          const msg = serverDetail ? `No se pudo crear el cliente: ${serverDetail}` : (serverMsg ? `No se pudo crear el cliente: ${serverMsg}` : `No se pudo crear el cliente (status ${res?.status})`);
+                          setModalMessage(msg);
+                          setModalOpen(true);
                         }
-                      } catch (e) { console.error('createClient error', e); alert('Error al crear cliente: ' + String(e)); }
+                      } catch (e) { console.error('createClient error', e); setModalMessage('Error al crear cliente: ' + String(e)); setModalOpen(true); }
                     }} style={{ padding: '8px 12px', borderRadius: 6, border: 'none', background: '#19A7A6', color: '#fff' }}>Crear cliente</button>
                     <button onClick={() => { setCreatingClient(false); setNewClient({}); }} style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd' }}>Cancelar</button>
                   </div>
@@ -423,7 +431,8 @@ export default function CartPage() {
                 } catch (e) { console.error('create factura error', e); createdOk = false; }
 
                 if (!createdOk) {
-                  alert('No se pudo crear la factura. Imprimiendo de todas formas.');
+                  setModalMessage('No se pudo crear la factura. Imprimiendo de todas formas.');
+                  setModalOpen(true);
                 }
 
                 try {
@@ -550,12 +559,13 @@ export default function CartPage() {
                 } catch (e) { console.error('prepare print snapshot error', e); }
 
                 
-              } catch (e) { console.error(e); alert('Error al crear/imprimir factura'); }
+              } catch (e) { console.error(e); setModalMessage('Error al crear/imprimir factura'); setModalOpen(true); }
             }} style={{ background: '#19A7A6', color: 'white', border: 'none', padding: '12px 20px', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
               IMPRIMIR
             </button>
           </div>
         </div>
+        <AlertModal open={modalOpen} title="Error" message={modalMessage} onClose={() => setModalOpen(false)} />
       </div>
   );
 }

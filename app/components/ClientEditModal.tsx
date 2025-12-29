@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
+import AlertModal from "./AlertModal";
 
 type Props = {
   open: boolean;
@@ -49,6 +50,8 @@ export default function ClientEditModal({ open, nombre = "", cedula = "", correo
   }
 
   const canSave = Boolean(sanitizeText(localNombre).length > 0) && (localCorreo ? isValidEmail(String(localCorreo)) : true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
 
   if (!open) return null;
 
@@ -67,11 +70,12 @@ export default function ClientEditModal({ open, nombre = "", cedula = "", correo
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 18 }}>
           <button ref={cancelRef} onClick={onCancel} disabled={loading} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5d9', background: 'white', cursor: 'pointer' }}>Cancelar</button>
           <button onClick={async () => {
-            if (!canSave) { alert('Por favor revisa los campos requeridos.'); return; }
+            if (!canSave) { setModalMessage('Por favor revisa los campos requeridos.'); setModalOpen(true); return; }
             const payload = { nombre: sanitizeText(localNombre, 200), cedula: sanitizeCedula(localCedula), correo: localCorreo ? String(localCorreo).trim().slice(0,200) : undefined, Empleado: !!localEmpleado };
             await onConfirm(payload);
           }} disabled={loading || !canSave} style={{ padding: '8px 12px', borderRadius: 8, border: 'none', color: 'white', background: 'linear-gradient(90deg,#25ABB9 0%, #19A7A6 100%)', cursor: 'pointer' }}>{loading ? 'Guardando...' : 'Guardar'}</button>
         </div>
+        <AlertModal open={modalOpen} title="Aviso" message={modalMessage} onClose={() => setModalOpen(false)} />
       </div>
     </div>
   );

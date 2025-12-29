@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import SideMenu from "../../components/SideMenu";
 import ActionsNav from "../../components/ActionsNav";
 import ConfirmModal from "../../components/ConfirmModal";
+import AlertModal from "../../components/AlertModal";
 import ClientEditModal from "../../components/ClientEditModal";
 import { loadClients, createClient, updateClient, deleteClient, Client } from "../../lib/clients";
 
@@ -21,6 +22,8 @@ export default function ClientsPage() {
   const [toDelete, setToDelete] = useState<Client | null>(null);
   const [showEdit, setShowEdit] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState<string>("");
 
   useEffect(() => { let cancelled = false; async function f(){ setLoading(true); setError(null); const r = await loadClients(); if (cancelled) return; if (!r.ok) { setClients([]); setError(`Error ${r.status}`); } else { setClients(r.clients || []); } setLoading(false);} f(); return () => { cancelled = true; }; }, []);
 
@@ -40,12 +43,17 @@ export default function ClientsPage() {
       const res = await createClient(payload);
       if (!res.ok) {
         console.error('clientes create error', res);
-        alert(`Error al crear: ${res.status}\n${JSON.stringify(res.data || res)}`);
+        const serverObj = (res as any)?.data ?? null;
+        const serverMsg = serverObj?.message || serverObj?.msg || null;
+        const serverDetail = serverObj?.detail || (serverObj?.error && (serverObj.error.detail || serverObj.error.message)) || null;
+        const msg = serverDetail ? `No se pudo crear el cliente: ${serverDetail}` : (serverMsg ? `No se pudo crear el cliente: ${serverMsg}` : `Error al crear (status ${res.status}).`);
+        setModalMessage(msg);
+        setModalOpen(true);
       } else {
         setNombre(''); setCedula(''); setCorreo(''); setEmpleado(false); setActive('Listar');
         await reload();
       }
-    } catch (err: any) { alert(err?.message ?? String(err)); }
+    } catch (err: any) { setModalMessage(err?.message ?? String(err)); setModalOpen(true); }
     setLoading(false);
   }
 
@@ -67,9 +75,14 @@ export default function ClientsPage() {
       const res = await updateClient(id as any, payload);
       if (!res.ok) {
         console.error('clientes update error', res);
-        alert(`Error al modificar: ${res.status}\n${JSON.stringify(res.data || res)}`);
+        const serverObj = (res as any)?.data ?? null;
+        const serverMsg = serverObj?.message || serverObj?.msg || null;
+        const serverDetail = serverObj?.detail || (serverObj?.error && (serverObj.error.detail || serverObj.error.message)) || null;
+        const msg = serverDetail ? `No se pudo modificar el cliente: ${serverDetail}` : (serverMsg ? `No se pudo modificar el cliente: ${serverMsg}` : `Error al modificar (status ${res.status}).`);
+        setModalMessage(msg);
+        setModalOpen(true);
       } else { await reload(); setShowEdit(false); setEditingClient(null); }
-    } catch (err: any) { alert(err?.message ?? String(err)); }
+    } catch (err: any) { setModalMessage(err?.message ?? String(err)); setModalOpen(true); }
     setLoading(false);
   }
 
@@ -214,7 +227,30 @@ export default function ClientsPage() {
               </div>
             )}
 
-            <ConfirmModal open={showConfirm} title={toDelete ? `Eliminar cliente: ${toDelete.nombre}` : 'Eliminar cliente'} message={toDelete ? <span>¿Deseas eliminar el cliente <strong>{toDelete.nombre}</strong>? Esta acción no se puede deshacer.</span> : '¿Deseas eliminar este cliente?'} confirmLabel='Eliminar' cancelLabel='Cancelar' loading={false} onCancel={() => { setShowConfirm(false); setToDelete(null); }} onConfirm={async () => { if (!toDelete) return; const id = toDelete.cliente_id ?? toDelete.id ?? null; if (!id) return; try { const res = await deleteClient(id as any); if (!res.ok) alert(`Error al eliminar: ${res.status}`); else await reload(); } catch (err: any) { alert(err?.message ?? String(err)); } setShowConfirm(false); setToDelete(null); }} />
+            <ConfirmModal open={showConfirm} title={toDelete ? `Eliminar cliente: ${toDelete.nombre}` : 'Eliminar cliente'} message={toDelete ? <span>¿Deseas eliminar el cliente <strong>{toDelete.nombre}</strong>? Esta acción no se puede deshacer.</span> : '¿Deseas eliminar este cliente?'} confirmLabel='Eliminar' cancelLabel='Cancelar' loading={false} onCancel={() => { setShowConfirm(false); setToDelete(null); }} onConfirm={async () => {
+              if (!toDelete) return; const id = toDelete.cliente_id ?? toDelete.id ?? null; if (!id) return;
+              try {
+                const res = await deleteClient(id as any);
+                if (!res.ok) {
+                  const serverObj = (res as any)?.data ?? null;
+                  const serverMsg = serverObj?.message || serverObj?.msg || null;
+                  const serverDetail = serverObj?.detail || (serverObj?.error && (serverObj.error.detail || serverObj.error.message)) || null;
+                  let msg = 'No se pudo eliminar el cliente.';
+                  if (serverDetail && typeof serverDetail === 'string') msg = `No se puede eliminar porque está vinculado: ${serverDetail}`;
+                  else if (serverMsg && typeof serverMsg === 'string') msg = `No se pudo eliminar: ${serverMsg}`;
+                  else msg = `No se pudo eliminar el cliente (status ${res.status}).`;
+                  setModalMessage(msg);
+                  setModalOpen(true);
+                } else {
+                  await reload();
+                }
+              } catch (err: any) {
+                setModalMessage(err?.message ?? String(err));
+                setModalOpen(true);
+              }
+              setShowConfirm(false); setToDelete(null);
+            }} />
+            <AlertModal open={modalOpen} title="Error" message={modalMessage} onClose={() => setModalOpen(false)} />
 
             {showEdit && editingClient && (
               <ClientEditModal
