@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import SideMenu from "../../components/SideMenu";
 import ActionsNav from "../../components/ActionsNav";
 import ConfirmModal from "../../components/ConfirmModal";
+import AlertModal from "../../components/AlertModal";
 import UserEditModal from "../../components/UserEditModal";
 import { loadUsers, User, deleteUser, updateUser, createUser } from "../../lib/users";
 import { loadRoles } from "../../lib/roles";
@@ -26,6 +27,8 @@ export default function UsersPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [selectedRoleId, setSelectedRoleId] = useState<number | undefined>(undefined);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState<string>("");
 
   useEffect(() => { let cancelled = false; async function f(){ setLoading(true); setError(null); const r = await loadUsers(); if (cancelled) return; if (!r.ok) { setUsers([]); setError(`Error ${r.status}`); } else setUsers(r.users); setLoading(false);} f(); return () => { cancelled = true; }; }, []);
 
@@ -94,15 +97,19 @@ export default function UsersPage() {
                   <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirmar Contraseña" style={{ padding: 16, borderRadius: 12, border: "2px solid #19A7A6", background: "rgba(25,167,166,0.08)", outline: "none" }} />
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={async () => {
-                      if (password !== confirmPassword) { alert('Las contraseñas no coinciden'); return; }
+                      if (password !== confirmPassword) { setModalMessage('Las contraseñas no coinciden'); setModalOpen(true); return; }
                       const n = nombre; const e = email; const rId = selectedRoleId;
                       setNombre(""); setEmail(""); setPassword(""); setConfirmPassword(""); setSelectedRoleId(undefined);
                       setLoading(true);
                       try {
                         const res = await createUser(n, e, rId, password);
-                        if (!res.ok) alert(`Error al crear: ${res.status}`);
-                        else { await reload(); setActive("Listar"); }
-                      } catch (err: any) { alert(err?.message ?? String(err)); }
+                        if (!res.ok) {
+                          const serverMsg = (res as any)?.data?.message || null;
+                          const msg = serverMsg ? `No se pudo crear el usuario: ${serverMsg}` : `No se pudo crear el usuario (status ${res.status}). Puede que el email ya exista o falten datos.`;
+                          setModalMessage(msg);
+                          setModalOpen(true);
+                        } else { await reload(); setActive("Listar"); }
+                      } catch (err: any) { setModalMessage(err?.message ?? String(err)); setModalOpen(true); }
                       setLoading(false);
                     }} style={{ padding: "10px 14px", background: "#19A7A6", color: "white", borderRadius: 8 }}>Crear</button>
                   </div>
@@ -229,27 +236,65 @@ export default function UsersPage() {
           </div>
 
           <ConfirmModal open={showConfirm} title={toDelete ? `Eliminar usuario: ${toDelete.nombre}` : "Eliminar usuario"} message={toDelete ? <span>¿Deseas eliminar el usuario <strong>{toDelete.nombre}</strong>? Esta acción no se puede deshacer.</span> : "¿Deseas eliminar este usuario?"} confirmLabel="Eliminar" cancelLabel="Cancelar" loading={false} onCancel={() => { setShowConfirm(false); setToDelete(null); }} onConfirm={async () => {
-            if (!toDelete) return; const id = toDelete.usuario_id ?? null; if (!id) return; try { const res = await deleteUser(id); if (!res.ok) alert(`Error al eliminar: ${res.status}`); else await reload(); } catch (err: any) { alert(err?.message ?? String(err)); } setShowConfirm(false); setToDelete(null);
+            if (!toDelete) return; const id = toDelete.usuario_id ?? null; if (!id) return;
+            try {
+              const res = await deleteUser(id);
+              if (!res.ok) {
+                const serverObj = (res as any)?.data ?? null;
+                const serverMsg = serverObj?.message || serverObj?.msg || null;
+                const serverDetail = serverObj?.detail || (serverObj?.error && (serverObj.error.detail || serverObj.error.message)) || null;
+                const serverCode = serverObj?.code || serverObj?.error?.code || null;
+                let msg = "No se pudo eliminar el usuario.";
+                if (serverDetail && typeof serverDetail === 'string') {
+                  // Example: Postgres FK violation detail
+                  if (serverCode === '23503' || /referida desde la tabla/i.test(String(serverDetail))) {
+                    msg = `No se puede eliminar porque está vinculado a otros registros: ${serverDetail}`;
+                  } else {
+                    msg = `No se pudo eliminar: ${serverDetail}`;
+                  }
+                } else if (serverMsg && typeof serverMsg === 'string') {
+                  msg = `No se pudo eliminar: ${serverMsg}`;
+                } else if (res.status === 409) msg = "No se puede eliminar el usuario porque está vinculado a otros registros (conflicto).";
+                else if (res.status === 403) msg = "No tienes permiso para eliminar este usuario (rol/privilegios).";
+                else if (res.status === 400) msg = "Solicitud inválida para eliminar usuario. Revisa los datos.";
+                else msg = `No se pudo eliminar el usuario (status ${res.status}). Puede estar vinculado a otros registros o tener un rol protegido.`;
+                setModalMessage(msg);
+                setModalOpen(true);
+              } else {
+                await reload();
+              }
+            } catch (err: any) {
+              setModalMessage(err?.message ?? String(err));
+              setModalOpen(true);
+            }
+            setShowConfirm(false); setToDelete(null);
           }} />
 
           <UserEditModal open={showEdit} title={createMode ? "Crear usuario" : editingUser ? `Editar usuario: ${editingUser.nombre}` : "Editar usuario"} nombre={editingUser?.nombre} email={editingUser?.email} rolId={editingUser?.rol?.rol_id} loading={editLoading} showPassword={createMode} onCancel={() => { setShowEdit(false); setEditingUser(null); setEditLoading(false); setCreateMode(false); }} onConfirm={async (n, e, r, password) => {
             setEditLoading(true);
-            try {
-              if (createMode) {
-                const res = await createUser(n, e, r, password);
-                if (!res.ok) alert(`Error al crear: ${res.status}`);
-                else await reload();
-              } else {
-                const id = editingUser?.usuario_id ?? null; if (!id) { alert('ID faltante'); setEditLoading(false); return; }
-                const res = await updateUser(id, n, e, r, password);
-                if (!res.ok) alert(`Error al modificar: ${res.status}`);
-                else await reload();
-              }
-            } catch (err: any) { alert(err?.message ?? String(err)); }
+                try {
+                  if (createMode) {
+                    const res = await createUser(n, e, r, password);
+                    if (!res.ok) {
+                      const serverMsg = (res as any)?.data?.message || null;
+                      setModalMessage(serverMsg ? `No se pudo crear: ${serverMsg}` : `Error al crear (status ${res.status}).`);
+                      setModalOpen(true);
+                    } else await reload();
+                  } else {
+                    const id = editingUser?.usuario_id ?? null; if (!id) { setModalMessage('ID faltante'); setModalOpen(true); setEditLoading(false); return; }
+                    const res = await updateUser(id, n, e, r, password);
+                    if (!res.ok) {
+                      const serverMsg = (res as any)?.data?.message || null;
+                      setModalMessage(serverMsg ? `No se pudo modificar: ${serverMsg}` : `Error al modificar (status ${res.status}).`);
+                      setModalOpen(true);
+                    } else await reload();
+                  }
+                } catch (err: any) { setModalMessage(err?.message ?? String(err)); setModalOpen(true); }
             setEditLoading(false); setShowEdit(false); setEditingUser(null); setCreateMode(false);
           }} />
 
         </div>
+        <AlertModal open={modalOpen} title="Error" message={modalMessage} onClose={() => setModalOpen(false)} />
       </main>
     </div>
   );

@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import Input from "./Input";
 import Button from "./Button";
+import AlertModal from "./AlertModal";
 import { useRouter } from "next/navigation";
 import { postLogin } from "../lib/api";
 
@@ -9,6 +10,8 @@ export default function LoginCard() {
   const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState<string>("");
   const router = useRouter();
 
   async function handleLogin(e: React.FormEvent) {
@@ -17,17 +20,26 @@ export default function LoginCard() {
       const result = await postLogin(user, pass);
       if (!result.ok) {
         const body = result.data;
-        const msg = body?.message || body?.msg || `Error ${result.status}`;
         console.error("Login failed:", result.status, body);
-        alert(msg);
+        const serverMsg = body?.message || body?.msg || null;
+        let userMsg = "Usuario o contraseña incorrectas";
+        if (serverMsg && typeof serverMsg === "string") {
+          userMsg = serverMsg;
+        } else if (result.status === 401) {
+          userMsg = "Usuario o contraseña incorrectos";
+        } else if (result.status === 404) {
+          userMsg = "Usuario no encontrado";
+        }
+        setModalMessage(userMsg);
+        setModalOpen(true);
         return;
       }
 
       const data = result.data ?? {};
       const token = data?.token || data?.accessToken || data?.data?.token;
       if (token) {
-        try { localStorage.setItem("token", token); } catch (e) { /* ignore */ }
-        try { localStorage.setItem("access_token", token); } catch (e) { /* ignore */ }
+        try { localStorage.setItem("token", token); } catch (e) {  }
+        try { localStorage.setItem("access_token", token); } catch (e) { }
       }
 
       let userObj: any = null;
@@ -70,7 +82,8 @@ export default function LoginCard() {
       
     } catch (err) {
       console.error("Login error:", err);
-      alert("Error de conexión");
+      setModalMessage("Error de conexión");
+      setModalOpen(true);
     }
   }
 
@@ -91,6 +104,7 @@ export default function LoginCard() {
           <Button type="submit">Iniciar sesión</Button>
         </form>
       </div>
+        <AlertModal open={modalOpen} title="Error" message={modalMessage} onClose={() => setModalOpen(false)} />
     </div>
   );
 }
