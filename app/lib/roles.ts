@@ -63,12 +63,8 @@ export async function createRole(nombre: string, descripcion: string): Promise<A
         }
       } catch {}
 
-      console.groupCollapsed(`roles.createRole — POST ${url}`);
-      console.log("payload:", { nombre, descripcion });
       const res = await fetch(url, { method: "POST", headers, body: JSON.stringify({ nombre, descripcion }) });
       const data = await (async () => { try { return await res.json(); } catch { return null; } })();
-      console.log("response:", { url, status: res.status, ok: res.ok, data });
-      console.groupEnd();
       return { ok: res.ok, status: res.status, data };
     } catch (err) {
 
@@ -150,7 +146,7 @@ export async function deleteRole(rol_id: number | string): Promise<ApiResult> {
         }
 
         const data = await (async () => { try { return await res.json(); } catch { return null; } })();
-       
+        return { ok: res.ok, status: res.status, data };
       } catch (err) {
         continue;
       }

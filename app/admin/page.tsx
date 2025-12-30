@@ -6,6 +6,7 @@ import ActionsNav, { Role } from "../components/ActionsNav";
 import { loadRoles, createRole, updateRole, deleteRole } from "../lib/roles";
 import ConfirmModal from "../components/ConfirmModal";
 import EditModal from "../components/EditModal";
+import AlertModal from "../components/AlertModal";
 
 export default function Page() {
   const [roles, setRoles] = useState<Role[]>([]);
@@ -25,6 +26,8 @@ export default function Page() {
   const [showEdit, setShowEdit] = useState(false);
   const [roleToEdit, setRoleToEdit] = useState<Role | null>(null);
   const [editLoading, setEditLoading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState<string | null>(null);
   
 
   useEffect(() => {
@@ -283,19 +286,28 @@ export default function Page() {
                   const id = roleToDelete.rol_id ?? null;
                   if (!id) return;
                   setDeletingIds((s) => [...s, Number(id)]);
-                  try {
-                    const res = await deleteRole(id);
-                    if (!res.ok) {
-                      alert(`Error al eliminar: ${res.status}`);
-                    } else {
+                    try {
+                      const res = await deleteRole(id);
+                      if (!res.ok) {
+                        const serverObj = (res as any)?.data ?? null;
+                        const serverMsg = serverObj?.message || serverObj?.msg || (serverObj?.error && (serverObj.error.message || serverObj.error.detail)) || null;
+                        const serverDetail = serverObj?.detail || (serverObj?.error && (serverObj.error.detail || serverObj.error.message)) || null;
+                        let msg = `No se pudo eliminar el rol (status ${res.status}).`;
+                        if (serverMsg && typeof serverMsg === 'string' && serverMsg.trim()) msg = serverMsg;
+                        else if (serverDetail && typeof serverDetail === 'string' && serverDetail.trim()) msg = serverDetail;
+                        setModalMessage(msg);
+                        setModalOpen(true);
+                      }
+                      // refresh list regardless so UI reflects server state
                       setLoading(true);
                       const rr = await loadRoles();
                       if (rr.ok) setRoles(rr.roles);
                       setLoading(false);
+                    } catch (err: any) {
+                      setModalMessage(err?.message ?? String(err));
+                      setModalOpen(true);
+                      try { const rr = await loadRoles(); if (rr.ok) setRoles(rr.roles); } catch {}
                     }
-                  } catch (err: any) {
-                    alert(err?.message ?? String(err));
-                  }
                   setDeletingIds((s) => s.filter((x) => x !== Number(id)));
                   setShowConfirm(false);
                   setRoleToDelete(null);
@@ -331,6 +343,7 @@ export default function Page() {
                   setEditLoading(false);
                 }}
               />
+              <AlertModal open={modalOpen} title={"Advertencia"} message={modalMessage ?? "Ocurrió un error"} onClose={() => setModalOpen(false)} />
             </div>
           </div>
         </div>

@@ -10,9 +10,10 @@ type Props = {
   onLogout?: () => void;
   initialOpen?: boolean;
   showTitle?: boolean;
+  showToggle?: boolean;
 };
 
-export default function CategorySideMenu({ categories, selected, onSelect, onLogout, initialOpen = false, showTitle = true }: Props) {
+export default function CategorySideMenu({ categories, selected, onSelect, onLogout, initialOpen = false, showTitle = true, showToggle = true }: Props) {
   const [open, setOpen] = useState<boolean>(initialOpen);
   const [cur, setCur] = useState<string | number | undefined>(selected ?? undefined);
 
@@ -49,7 +50,7 @@ export default function CategorySideMenu({ categories, selected, onSelect, onLog
 
   return (
     <>
-      {!open && (
+      {!open && showToggle && (
         <button
           aria-label="Abrir categorías"
           title="Abrir categorías"

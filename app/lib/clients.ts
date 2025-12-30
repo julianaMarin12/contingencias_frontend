@@ -89,6 +89,7 @@ export async function updateClient(id: number | string, payload: any): Promise<{
       const res = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(payload) });
       lastRes = res;
       const data = await safeJson(res);
+      
       return { ok: res.ok, status: res.status, data };
     } catch (err) { continue; }
   }

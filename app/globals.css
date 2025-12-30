@@ -360,3 +360,31 @@ body{
     .side-menu, .side-toggle-btn { display: none !important }
   }
 
+  /* Header and logo responsive styles */
+
+  .app-header{
+    position:sticky;
+    top:0;
+    z-index:220;
+    background: transparent;
+    padding:12px 18px;
+    backdrop-filter: blur(6px);
+  }
+
+  .header-inner{ width:100%; display:flex; justify-content:center; align-items:center }
+  .logo{ display:flex; align-items:center; gap:12px }
+  .site-logo{ height:44px; width:auto; object-fit:contain }
+
+  .header-actions{ position:absolute; right:18px; top:50%; transform:translateY(-50%); }
+
+  @media(max-width:899px){
+    .app-header{ padding:10px 12px }
+    .site-logo{ height:36px }
+    .header-actions{ display:none }
+  }
+
+  @media(min-width:900px){
+    .site-logo{ height:48px }
+  }
+
+

@@ -366,39 +366,79 @@ export default function Page() {
     if (typeof window !== 'undefined') window.location.href = '/';
   }
 
+  function getInitials(name?: string | null) {
+    try {
+      if (!name) return 'T';
+      const parts = name.trim().split(/\s+/);
+      if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+      return (String(parts[0][0] || '') + String(parts[1][0] || '')).toUpperCase();
+    } catch (e) { return 'T'; }
+  }
+
+  
+  const initials = getInitials(storeName);
+  const [logoError, setLogoError] = useState(false);
+
   return (
     <div style={{ minHeight: '100vh', background: 'transparent' }}>
-      <header style={{ position: 'sticky', top: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 12px', background: '#fff', zIndex: 160, boxShadow: '0 2px 12px rgba(11,37,64,0.06)' }}>
-        <div style={{ fontWeight: 800, color: '#19A7A6', fontSize: 20 }}>PRODUCTOS</div>
+      <header style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px 8px', background: 'transparent', zIndex: 160 }}>
+        <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button aria-label="Abrir categorías" title="Abrir categorías" onClick={() => { try { if (typeof window !== 'undefined') window.dispatchEvent(new Event('open-category-menu')); } catch(e){} }} style={{ width: 40, height: 40, borderRadius: 8, background: '#f0fbfa', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#19A7A6', fontWeight: 800, fontSize: 13, border: 'none', cursor: 'pointer' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M3 6h18" stroke="#19A7A6" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M3 12h18" stroke="#19A7A6" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M3 18h18" stroke="#19A7A6" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+              <img src="/Logo.png" alt="Logo" onError={() => setLogoError(true)} style={{ height: 32, width: 'auto', objectFit: 'contain', marginBottom: 8 }} />
+              {logoError && <div style={{ height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, marginBottom: 8 }}>{initials}</div>}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontWeight: 800, color: '#0b2540', fontSize: 18, lineHeight: '20px' }}>{storeName ?? 'Tienda no seleccionada'}</div>
+                <div style={{ fontSize: 13, color: '#556', marginTop: 4 }}>{storeId ? (storeName ? 'Productos disponibles' : 'Cargando tienda...') : 'Selecciona una tienda'}</div>
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          </div>
+        </div>
       </header>
 
-      {/* compact toolbar: filter (opens category menu), search, cart */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '10px 12px', background: 'transparent', position: 'sticky', top: 56, zIndex: 150 }}>
-        <button aria-label="Filtros" title="Filtros" onClick={() => { try { if (typeof window !== 'undefined') window.dispatchEvent(new Event('open-category-menu')); } catch (e) {} }} style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid #e6e6e6', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path d="M3 6h18" stroke="#0b2540" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M7 12h10" stroke="#0b2540" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M10 18h4" stroke="#0b2540" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-
-        {/* Import button removed per UX: invoices will be added directly to cart */}
-
+      {/* compact toolbar: search and cart (filter button moved to header) */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '8px 12px', background: 'transparent', position: 'relative', zIndex: 150 }}>
         <div style={{ flex: 1 }}>
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar producto..." style={{ width: '100%', padding: '10px 12px', borderRadius: 24, border: '1px solid #ddd' }} />
         </div>
 
         
 
-        <button onClick={() => {
-          try {
-            const params: string[] = [];
-            if (storeId) params.push(`storeId=${encodeURIComponent(String(storeId))}`);
-            if (storeName) params.push(`storeName=${encodeURIComponent(String(storeName))}`);
-            const qs = params.length ? `?${params.join('&')}` : '';
-            router.push(`/cart${qs}`);
-          } catch (e) { router.push('/cart'); }
-        }} aria-label="Ir al carrito" style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid #e6e6e6', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <button
+          onClick={() => {
+            if (cartItems.length === 0) return;
+            try {
+              const params: string[] = [];
+              if (storeId) params.push(`storeId=${encodeURIComponent(String(storeId))}`);
+              if (storeName) params.push(`storeName=${encodeURIComponent(String(storeName))}`);
+              const qs = params.length ? `?${params.join('&')}` : '';
+              router.push(`/cart${qs}`);
+            } catch (e) { router.push('/cart'); }
+          }}
+          aria-label="Ir al carrito"
+          disabled={cartItems.length === 0}
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 10,
+            border: '1px solid #e6e6e6',
+            background: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: cartItems.length === 0 ? 0.6 : 1,
+            cursor: cartItems.length === 0 ? 'not-allowed' : 'pointer'
+          }}
+        >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path d="M6 6h15l-1.5 9h-11L6 6z" stroke="#19A7A6" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
             <circle cx="10" cy="20" r="1" fill="#19A7A6" />
@@ -411,6 +451,7 @@ export default function Page() {
       <CategorySideMenu
         categories={familias.map((it) => ({ id: it.familia_id ?? it.id, label: it.nombre ?? String(it.familia_id ?? it.id) }))}
         selected={selectedFamiliaId}
+        showToggle={false}
         onSelect={(id) => {
           setSelectedFamiliaId(id);
           const fam = familias.find((f) => String(f.familia_id ?? f.id) === String(id));
@@ -419,7 +460,6 @@ export default function Page() {
             setAvailableCategories(cats);
             if (cats.length > 0) {
               const first = cats[0];
-              console.debug('Auto-selecting first category ->', first);
               setCategoryId(first.id);
             } else {
               setCategoryId(undefined);
@@ -436,9 +476,23 @@ export default function Page() {
 
       {/* category chips for selected familia */}
       {availableCategories.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, padding: '8px 12px', overflowX: 'auto' }}>
+        <div style={{ display: 'flex', gap: 8, padding: '10px 12px', overflowX: 'auto', alignItems: 'center' }}>
           {availableCategories.map((c, idx) => (
-            <button key={`${String(c.id)}-${idx}`} onClick={() => setCategoryId(c.id)} style={{ padding: '6px 10px', borderRadius: 20, border: categoryId === c.id ? '2px solid #19A7A6' : '1px solid #e6e6e6', background: '#fff' }}>
+            <button
+              key={`${String(c.id)}-${idx}`}
+              onClick={() => setCategoryId(c.id)}
+              style={{
+                padding: '8px 14px',
+                borderRadius: 24,
+                border: categoryId === c.id ? '2px solid #19A7A6' : '1px solid #e6e6e6',
+                background: categoryId === c.id ? '#ffffff' : '#fbffff',
+                boxShadow: categoryId === c.id ? '0 6px 18px rgba(25,167,166,0.08)' : 'none',
+                color: '#0b2540',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                cursor: 'pointer'
+              }}
+            >
               {c.label}
             </button>
           ))}
@@ -446,8 +500,6 @@ export default function Page() {
       )}
 
       <main style={{ padding: 12, paddingTop: 12 }}>
-        <div style={{ marginBottom: 8, textAlign: 'center', color: '#333' }}>{storeId ? (loadingStore ? 'Cargando tienda...' : (storeName ?? 'Tienda')) : 'No se seleccionó una tienda'}</div>
-
         <section>
           {loadingProducts ? <p>Cargando productos...</p> : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>

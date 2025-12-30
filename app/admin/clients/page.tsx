@@ -24,6 +24,7 @@ export default function ClientsPage() {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMessage, setModalMessage] = useState<string>("");
+  const [cedulaSearch, setCedulaSearch] = useState<string>('');
 
   useEffect(() => { let cancelled = false; async function f(){ setLoading(true); setError(null); const r = await loadClients(); if (cancelled) return; if (!r.ok) { setClients([]); setError(`Error ${r.status}`); } else { setClients(r.clients || []); } setLoading(false);} f(); return () => { cancelled = true; }; }, []);
 
@@ -39,7 +40,17 @@ export default function ClientsPage() {
     if (typeof cedulaNum !== 'undefined') payload.cedula = cedulaNum;
     else if (typeof cedula !== 'undefined' && cedula !== '') payload.cedula = cedula;
     setLoading(true);
+    // client-side duplicate cedula validation
     try {
+      if (typeof payload.cedula !== 'undefined' && payload.cedula !== '') {
+        const exists = clients.find((c) => (c.cedula !== undefined) && String(c.cedula) === String(payload.cedula));
+        if (exists) {
+          setModalMessage(`La cédula ${payload.cedula} ya está registrada para el cliente: ${exists.nombre ?? exists.id}`);
+          setModalOpen(true);
+          setLoading(false);
+          return;
+        }
+      }
       const res = await createClient(payload);
       if (!res.ok) {
         console.error('clientes create error', res);
@@ -54,8 +65,16 @@ export default function ClientsPage() {
         await reload();
       }
     } catch (err: any) { setModalMessage(err?.message ?? String(err)); setModalOpen(true); }
+    // clear any previous modal on success
+    if (modalOpen && !modalMessage) { /* nothing */ }
     setLoading(false);
   }
+
+  const displayedClients = (() => {
+    const q = String(cedulaSearch ?? '').trim();
+    if (!q) return clients;
+    return clients.filter((c) => String(c.cedula ?? '').startsWith(q));
+  })();
 
   function beginEdit(c: Client) {
     setEditingClient(c);
@@ -81,7 +100,7 @@ export default function ClientsPage() {
         const msg = serverDetail ? `No se pudo modificar el cliente: ${serverDetail}` : (serverMsg ? `No se pudo modificar el cliente: ${serverMsg}` : `Error al modificar (status ${res.status}).`);
         setModalMessage(msg);
         setModalOpen(true);
-      } else { await reload(); setShowEdit(false); setEditingClient(null); }
+      } else { await reload(); setShowEdit(false); setEditingClient(null); setModalOpen(false); setModalMessage(''); }
     } catch (err: any) { setModalMessage(err?.message ?? String(err)); setModalOpen(true); }
     setLoading(false);
   }
@@ -93,7 +112,20 @@ export default function ClientsPage() {
         <div style={{ borderRadius: 20, padding: 24, background: '#fff' }}>
           <h2 style={{ color: '#25abb9', marginTop: 0, fontWeight: 'bold' }}>CLIENTES</h2>
           <div style={{ marginTop: 12 }}>
-            <ActionsNav active={active} onChange={(a) => setActive(a)} />
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <ActionsNav active={active} onChange={(a) => setActive(a)} />
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  aria-label="Buscar por cédula"
+                  placeholder='Buscar por cédula'
+                  value={cedulaSearch}
+                  onChange={(e) => setCedulaSearch(e.target.value)}
+                  style={{ padding: 10, borderRadius: 12, border: '2px solid #19A7A6', background: 'rgba(25,167,166,0.03)', width: 220 }}
+                />
+                <button onClick={() => { /* keep client-side filter; button for discoverability */ }} style={{ padding: '8px 12px', borderRadius: 10, border: 'none', background: '#19A7A6', color: 'white', cursor: 'pointer' }}>Buscar</button>
+                <button onClick={() => setCedulaSearch('')} style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid #cbd5d9', background: 'white', cursor: 'pointer' }}>Limpiar</button>
+              </div>
+            </div>
 
             {active === 'Crear' && (
               <div style={{ padding: 12, border: '1px solid #e6f7f6', borderRadius: 8, maxWidth: 720 }}>
@@ -125,10 +157,10 @@ export default function ClientsPage() {
                       <div style={{ width: 140, padding: '10px 12px', textAlign: 'center' }}>ACCIONES</div>
                     </div>
                     <div>
-                      {(!clients || clients.length === 0) ? (
+                      {(!displayedClients || displayedClients.length === 0) ? (
                         <div style={{ padding: 12, color: '#666' }}>No se encontraron clientes.</div>
-                      ) : (
-                        clients.map((c) => (
+                        ) : (
+                          displayedClients.map((c) => (
                           <div key={String(c.cliente_id ?? c.id ?? c.nombre)} style={{ display: 'flex', borderTop: '1px solid #e6f7f6', alignItems: 'center' }}>
                             <div style={{ flex: 2, padding: '10px 12px', color: '#19A7A6' }}>{c.nombre}</div>
                             <div style={{ width: 160, padding: '10px 12px' }}>{c.cedula ?? ''}</div>
@@ -150,7 +182,6 @@ export default function ClientsPage() {
                 )}
               </div>
             )}
-
             {active === 'Listar' && (
               <div style={{ marginTop: 12 }}>
                 <h3 style={{ margin: '8px 0', color: '#0b7285' }}>Lista de clientes</h3>
@@ -165,10 +196,10 @@ export default function ClientsPage() {
                       <div style={{ width: 120, padding: '10px 12px' }}>EMPLEADO</div>
                     </div>
                     <div>
-                      {clients.length === 0 ? (
+                      {displayedClients.length === 0 ? (
                         <div style={{ padding: 12, color: '#666' }}>No se encontraron clientes.</div>
                       ) : (
-                        clients.map((c) => (
+                        displayedClients.map((c) => (
                           <div key={String(c.cliente_id ?? c.id ?? c.nombre)} style={{ display: 'flex', borderTop: '1px solid #e6f7f6', alignItems: 'center' }}>
                             <div style={{ flex: 2, padding: '10px 12px', color: '#19A7A6' }}>{c.nombre}</div>
                             <div style={{ width: 160, padding: '10px 12px' }}>{c.cedula ?? ''}</div>
@@ -182,7 +213,6 @@ export default function ClientsPage() {
                 )}
               </div>
             )}
-
             {active === 'Eliminar' && (
               <div style={{ marginTop: 12 }}>
                 <h3 style={{ margin: '8px 0', color: '#0b7285' }}>Eliminar clientes</h3>
@@ -198,10 +228,10 @@ export default function ClientsPage() {
                       <div style={{ width: 140, padding: '10px 12px', textAlign: 'center' }}>ACCIONES</div>
                     </div>
                     <div>
-                      {clients.length === 0 ? (
+                      {displayedClients.length === 0 ? (
                         <div style={{ padding: 12, color: '#666' }}>No se encontraron clientes.</div>
                       ) : (
-                        clients.map((c) => (
+                        displayedClients.map((c) => (
                           <div key={String(c.cliente_id ?? c.id ?? c.nombre)} style={{ display: 'flex', borderTop: '1px solid #e6f7f6', alignItems: 'center' }}>
                             <div style={{ flex: 2, padding: '10px 12px', color: '#19A7A6' }}>{c.nombre}</div>
                             <div style={{ width: 160, padding: '10px 12px' }}>{c.cedula ?? ''}</div>
@@ -226,7 +256,6 @@ export default function ClientsPage() {
                 )}
               </div>
             )}
-
             <ConfirmModal open={showConfirm} title={toDelete ? `Eliminar cliente: ${toDelete.nombre}` : 'Eliminar cliente'} message={toDelete ? <span>¿Deseas eliminar el cliente <strong>{toDelete.nombre}</strong>? Esta acción no se puede deshacer.</span> : '¿Deseas eliminar este cliente?'} confirmLabel='Eliminar' cancelLabel='Cancelar' loading={false} onCancel={() => { setShowConfirm(false); setToDelete(null); }} onConfirm={async () => {
               if (!toDelete) return; const id = toDelete.cliente_id ?? toDelete.id ?? null; if (!id) return;
               try {
@@ -243,6 +272,8 @@ export default function ClientsPage() {
                   setModalOpen(true);
                 } else {
                   await reload();
+                  setModalOpen(false);
+                  setModalMessage('');
                 }
               } catch (err: any) {
                 setModalMessage(err?.message ?? String(err));
@@ -269,19 +300,27 @@ export default function ClientsPage() {
                     const cedulaRaw = payload.cedula ?? '';
                     const cedulaNum = (typeof cedulaRaw === 'string' && cedulaRaw.trim() !== '' && !isNaN(Number(cedulaRaw))) ? Number(cedulaRaw) : (typeof cedulaRaw === 'number' ? cedulaRaw : undefined);
                     const out: any = { nombre: payload.nombre ?? '', correo: payload.correo ?? '' };
-                    out.Empleado = typeof payload.Empleado !== 'undefined' ? payload.Empleado : (typeof payload.Empleado !== 'undefined' ? payload.Empleado : empleado);
+                    out.Empleado = typeof payload.Empleado !== 'undefined' ? payload.Empleado : empleado;
 
                     const res = await updateClient(id as any, out);
                     if (!res.ok) {
                       console.error('clientes update error', res);
-                      alert(`Error al modificar: ${res.status}\n${JSON.stringify(res.data || res)}`);
+                      
+                      const serverObj = (res as any)?.data ?? null;
+                      const serverMsg = serverObj?.message || serverObj?.msg || null;
+                      const serverDetail = serverObj?.detail || (serverObj?.error && (serverObj.error.detail || serverObj.error.message)) || null;
+                      const fallback = serverObj ? JSON.stringify(serverObj) : null;
+                      const msg = serverDetail ? `No se pudo modificar el cliente: ${serverDetail}` : (serverMsg ? `No se pudo modificar el cliente: ${serverMsg}` : (fallback ? `Error al modificar: ${fallback}` : `Error al modificar (status ${res.status}).`));
+                      setModalMessage(msg);
+                      setModalOpen(true);
                     } else {
                       await reload();
                       setShowEdit(false);
                       setEditingClient(null);
                     }
                   } catch (err: any) {
-                    alert(err?.message ?? String(err));
+                    setModalMessage(err?.message ?? String(err));
+                    setModalOpen(true);
                   } finally {
                     setLoading(false);
                   }
